@@ -27,8 +27,6 @@ from app.core.config import settings
 from app.core.exceptions import InvalidPeriodError
 from app.core.rate_limit import enforce_rate_limit
 from app.db import operational as operational_store
-from app.services.data_loader import DatasetValidationError, data_loader
-from app.services.data_repository import data_repository
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,14 +50,9 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Reclaim Financial Control Center API...")
     try:
         operational_store.initialize()
-        data_loader.load_dataset()
-        data_repository.load()
-        logger.info("Dataset validation, operational store, and normalization successful.")
-    except DatasetValidationError as e:
-        logger.critical("FATAL: Dataset startup validation failed: %s", e)
-        raise e
+        logger.info("Operational store ready. Period datasets load on first financial request.")
     except Exception as e:
-        logger.critical("FATAL: Unexpected error loading dataset: %s", e)
+        logger.critical("FATAL: Unexpected error initializing operational store: %s", e)
         raise e
 
     yield

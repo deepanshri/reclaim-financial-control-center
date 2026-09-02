@@ -70,6 +70,10 @@ class DataRepository:
         self._data_quality_issues: List[str] = []
         self._load_lock = threading.Lock()
 
+    @property
+    def is_loaded(self) -> bool:
+        return self._is_loaded
+
     def period_keys(self) -> List[str]:
         self.load()
         return list(self._periods.keys())

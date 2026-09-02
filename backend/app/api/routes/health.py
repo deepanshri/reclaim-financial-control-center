@@ -9,9 +9,9 @@ router = APIRouter(tags=["Health"])
 
 @router.get("/health", response_model=HealthResponse, summary="Service Health Check")
 def get_health() -> HealthResponse:
-    loaded = len(data_repository.period_keys()) >= 1
+    loaded = data_repository.is_loaded
     return HealthResponse(
-        status="ok" if loaded else "degraded",
+        status="ok",
         version="1.1.0",
         service="reclaim-financial-engine",
         dataset_status="loaded" if loaded else "not_loaded",

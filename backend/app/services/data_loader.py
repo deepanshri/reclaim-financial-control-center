@@ -1,6 +1,7 @@
 import csv
 import json
 import logging
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -67,6 +68,7 @@ class DataLoader:
         self._periods: Dict[str, PeriodData] = {}
         self._selection_meta: Dict[str, Any] = {}
         self._is_loaded: bool = False
+        self._load_lock = threading.Lock()
 
     def normalize_period_key(self, period: Optional[str] = None, year: Optional[int] = None) -> str:
         """Resolves period string or year to a valid period key. Explicit unknown keys are never substituted."""
@@ -111,6 +113,10 @@ class DataLoader:
                 raise DatasetValidationError(f"Period {p_key} missing files: {', '.join(missing)}")
 
     def load_dataset(self, force_reload: bool = False) -> None:
+        with self._load_lock:
+            self._load_unlocked(force_reload=force_reload)
+
+    def _load_unlocked(self, force_reload: bool = False) -> None:
         if self._is_loaded and not force_reload:
             return
 
