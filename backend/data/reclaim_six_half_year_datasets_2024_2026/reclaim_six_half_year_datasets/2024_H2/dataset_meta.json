@@ -1,0 +1,14 @@
+{
+  "merchant_name": "Zenzo Commerce",
+  "merchant_id": "mid_demo_ZC771042",
+  "currency": "INR",
+  "payment_provider": "Razorpay",
+  "dataset_type": "synthetic_demo",
+  "selection_seed": 20260901,
+  "note": "Synthetic data for demonstration purposes only. Not real merchant, payment, or customer data.",
+  "period_key": "2024_H2",
+  "period_start": "2024-07-01",
+  "period_end": "2024-12-31",
+  "review_status": "needs_review",
+  "is_action_required": true
+}

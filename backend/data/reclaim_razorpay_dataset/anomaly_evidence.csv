@@ -1,0 +1,7 @@
+anomaly_id,evidence_id,transaction_id,reference_id,date,method,gross_amount,expected_value,actual_value,difference,evidence_note
+anom_001,ev_50500019,pay_EH26050500019,order_EH26050500019,2026-05-05,card,775.54,13.96,17.84,3.88,Contracted 1.80% vs charged 2.30%.
+anom_001,ev_50500028,pay_EH26050500028,order_EH26050500028,2026-05-05,card,2604.89,46.89,59.91,13.02,Contracted 1.80% vs charged 2.30%.
+anom_001,ev_50500104,pay_EH26050500104,order_EH26050500104,2026-05-05,upi,602.91,10.85,13.87,3.02,Contracted 1.80% vs charged 2.30%.
+anom_001,ev_50500133,pay_EH26050500133,order_EH26050500133,2026-05-05,upi,2767.22,49.81,63.65,13.84,Contracted 1.80% vs charged 2.30%.
+anom_002,ev_ref_001,rfnd_EH260522001,pay_EH24010400001,2026-05-22,upi,4200.00,4200.00,4200.00,0.00,First refund for the payment.
+anom_002,ev_ref_002,rfnd_EH260523002,pay_EH24010400001,2026-05-23,upi,4200.00,0.00,4200.00,4200.00,Second refund for the same payment; excess refund.

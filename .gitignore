@@ -1,0 +1,15 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+backend/data/*.sqlite
+backend/data/*.sqlite-journal
+.pytest_cache/
+**/__pycache__/
+*.py[cod]
+.venv/
+backend/.venv/

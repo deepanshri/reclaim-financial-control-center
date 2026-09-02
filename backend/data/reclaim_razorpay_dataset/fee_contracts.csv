@@ -1,0 +1,2 @@
+contract_id,merchant_id,provider,fee_type,contracted_rate,currency,effective_from,effective_to,notes
+contract_EH_001,mid_demo_EH98218042,Razorpay,processing_fee,0.018,INR,2024-01-01,2026-04-30,Synthetic demo contract

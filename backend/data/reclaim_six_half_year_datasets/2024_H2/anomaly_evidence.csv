@@ -1,0 +1,9 @@
+evidence_id,anomaly_id,transaction_id,reference_id,date,expected_value,actual_value,difference,gross_amount,method,evidence_note
+ev_fee_2024_H2_1_pay_2024_H2_01422,anom_2024_H2_001,pay_2024_H2_01422,order_2024_H2_01422,2024-07-01,1.80% (INR 37.38),2.30% (INR 47.76),+0.50% (+INR 10.38),2076.48,card,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_fee_2024_H2_2_pay_2024_H2_01609,anom_2024_H2_001,pay_2024_H2_01609,order_2024_H2_01609,2024-07-01,1.80% (INR 335.31),2.30% (INR 428.45),+0.50% (+INR 93.14),18628.28,card,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_fee_2024_H2_3_pay_2024_H2_00952,anom_2024_H2_001,pay_2024_H2_00952,order_2024_H2_00952,2024-07-01,1.80% (INR 2302.77),2.30% (INR 2942.43),+0.50% (+INR 639.66),127931.66,upi,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_fee_2024_H2_4_pay_2024_H2_00725,anom_2024_H2_001,pay_2024_H2_00725,order_2024_H2_00725,2024-07-01,1.80% (INR 63.81),2.30% (INR 81.54),+0.50% (+INR 17.73),3545.20,upi,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_ref_2024_H2_001_orig,anom_2024_H2_002,rfnd_2024_H2_001,pay_2024_H2_00005,2024-12-14,"INR 14,800.00","INR 14,800.00",INR 0.00,14800.00,upi,Original legitimate refund processed for payment.
+ev_ref_2024_H2_001_dup,anom_2024_H2_002,rfnd_2024_H2_002,pay_2024_H2_00005,2024-12-16,INR 0.00 (Already refunded),"INR 14,800.00","+INR 14,800.00",14800.00,upi,Second refund processed for the same payment; excess debit.
+ev_settl_disc_2024_H2_set_2024_H2_00068,anom_2024_H2_003,set_2024_H2_00068,UTR2024H200068,2024-09-07,"INR 1,834,270.43","INR 1,814,020.43","INR 20,250.00",1834270.43,NEFT/RTGS,Calculated net payout versus actual settlement amount.
+ev_2024_H2_dly_001,anom_2024_H2_004,set_2024_H2_00142,UTR2024H200142,2024-11-29,T+1,T+4,+3 days,0.00,NEFT/RTGS,Diwali week bank processing delay; settlement arrived late but credited in full.

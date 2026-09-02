@@ -1,0 +1,7 @@
+evidence_id,anomaly_id,transaction_id,reference_id,date,expected_value,actual_value,difference,gross_amount,method,evidence_note
+ev_2026_H1_fee_001,anom_2026_H1_001,pay_2026_H1_00001,order_2026_H1_00001,2026-03-18,284.40,363.40,79.00,0.00,upi,1.80% contracted MDR vs 2.30% charged - Holi season lifestyle order.
+ev_2026_H1_fee_002,anom_2026_H1_001,pay_2026_H1_00002,order_2026_H1_00002,2026-04-14,615.60,786.60,171.00,0.00,card,1.80% contracted MDR vs 2.30% charged - premium home goods.
+ev_2026_H1_fee_003,anom_2026_H1_001,pay_2026_H1_00003,order_2026_H1_00003,2026-05-20,162.00,207.00,45.00,0.00,upi,1.80% contracted MDR vs 2.30% charged.
+ev_2026_H1_fee_004,anom_2026_H1_001,pay_2026_H1_00004,order_2026_H1_00004,2026-02-08,423.00,540.50,117.50,0.00,netbanking,1.80% contracted MDR vs 2.30% charged.
+ev_2026_H1_rf_001,anom_2026_H1_002,rfnd_2026_H1_001,pay_2026_H1_00005,2026-05-25,21400.00,21400.00,0.00,0.00,upi,Original legitimate refund for returned kitchen appliance.
+ev_2026_H1_rf_002,anom_2026_H1_002,rfnd_2026_H1_002,pay_2026_H1_00005,2026-05-28,0.00,21400.00,21400.00,0.00,upi,"Duplicate refund processed in error; excess debit of INR 21,400.00."

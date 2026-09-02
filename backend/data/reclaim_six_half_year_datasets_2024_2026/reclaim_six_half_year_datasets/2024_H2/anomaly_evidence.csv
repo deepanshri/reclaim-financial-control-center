@@ -1,0 +1,9 @@
+evidence_id,anomaly_id,transaction_id,reference_id,date,expected_value,actual_value,difference,gross_amount,method,evidence_note
+ev_2024_H2_fee_001,anom_2024_H2_001,pay_2024_H2_00001,order_2024_H2_00001,2024-10-14,165.60,211.60,46.00,0.00,upi,Contracted 1.80% MDR vs charged 2.30% MDR on lifestyle order.
+ev_2024_H2_fee_002,anom_2024_H2_001,pay_2024_H2_00002,order_2024_H2_00002,2024-11-08,387.00,494.50,107.50,0.00,card,Contracted 1.80% MDR vs charged 2.30% MDR on home goods order.
+ev_2024_H2_fee_003,anom_2024_H2_001,pay_2024_H2_00003,order_2024_H2_00003,2024-12-02,245.70,314.06,68.36,0.00,upi,Contracted 1.80% MDR vs charged 2.30% MDR.
+ev_2024_H2_fee_004,anom_2024_H2_001,pay_2024_H2_00004,order_2024_H2_00004,2024-08-19,612.00,782.00,170.00,0.00,netbanking,Contracted 1.80% MDR vs charged 2.30% MDR.
+ev_2024_H2_rf_001,anom_2024_H2_002,rfnd_2024_H2_001,pay_2024_H2_00005,2024-12-14,14800.00,14800.00,0.00,0.00,card,Original legitimate refund for returned home decor set.
+ev_2024_H2_rf_002,anom_2024_H2_002,rfnd_2024_H2_002,pay_2024_H2_00005,2024-12-16,0.00,14800.00,14800.00,0.00,card,"Second refund processed in error; excess debit of INR 14,800.00."
+ev_2024_H2_sd_001,anom_2024_H2_003,set_2024_H2_00068,UTR2024H200068,2024-10-19,68450.00,48200.00,20250.00,0.00,NEFT/RTGS,October Dussehra batch payout shortfall; under merchant dispute review.
+ev_2024_H2_dly_001,anom_2024_H2_004,set_2024_H2_00142,UTR2024H200142,2024-11-29,T+1,T+4,+3 days,0.00,NEFT/RTGS,Diwali week bank processing delay; settlement arrived late but credited in full.

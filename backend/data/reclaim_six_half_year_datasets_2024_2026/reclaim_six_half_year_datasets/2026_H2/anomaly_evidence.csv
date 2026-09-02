@@ -1,0 +1,12 @@
+evidence_id,anomaly_id,transaction_id,reference_id,date,expected_value,actual_value,difference,gross_amount,method,evidence_note
+ev_2026_H2_fee_001,anom_2026_H2_001,pay_2026_H2_00001,order_2026_H2_00001,2026-10-14,291.60,372.60,81.00,0.00,upi,1.80% MDR vs 2.30% charged - Diwali lifestyle order.
+ev_2026_H2_fee_002,anom_2026_H2_001,pay_2026_H2_00002,order_2026_H2_00002,2026-11-08,752.40,961.40,209.00,0.00,card,1.80% MDR vs 2.30% charged - premium home appliance.
+ev_2026_H2_fee_003,anom_2026_H2_001,pay_2026_H2_00003,order_2026_H2_00003,2026-12-02,198.00,253.00,55.00,0.00,upi,1.80% MDR vs 2.30% charged.
+ev_2026_H2_fee_004,anom_2026_H2_001,pay_2026_H2_00004,order_2026_H2_00004,2026-07-20,432.00,552.00,120.00,0.00,netbanking,1.80% MDR vs 2.30% charged.
+ev_2026_H2_rf_001,anom_2026_H2_002,rfnd_2026_H2_001,pay_2026_H2_00005,2026-12-14,22800.00,22800.00,0.00,0.00,upi,Original legitimate refund for returned fitness tracker.
+ev_2026_H2_rf_002,anom_2026_H2_002,rfnd_2026_H2_002,pay_2026_H2_00005,2026-12-16,0.00,22800.00,22800.00,0.00,upi,"Duplicate refund processed; excess debit of INR 22,800.00."
+ev_2026_H2_ms_001,anom_2026_H2_003,pay_2026_H2_00006,order_2026_H2_00006,2026-07-16,24800.00,0.00,24800.00,0.00,card,Captured payment has no matching processed settlement.
+ev_2026_H2_bc_001,anom_2026_H2_004,set_2026_H2_00038,UTR2026H200038,2026-09-16,18500.00,0.00,18500.00,0.00,NEFT/RTGS,Bank trace confirmed operational return due to IFSC update; gateway dispute not applicable.
+ev_2026_H2_bc_002,anom_2026_H2_005,set_2026_H2_00021,UTR2026H200021,2026-08-09,34200.00,0.00,34200.00,0.00,NEFT/RTGS,Gateway marked processed; bank statement shows no credit for UTR UTR2026H200021.
+ev_2026_H2_sd_001,anom_2026_H2_006,set_2026_H2_00087,UTR2026H200087,2026-11-06,104500.00,82800.00,21700.00,0.00,NEFT/RTGS,Diwali batch settlement shortfall; merchant dispute submitted.
+ev_2026_H2_dly_001,anom_2026_H2_007,set_2026_H2_00198,UTR2026H200198,2026-12-29,T+1,T+4,+3 days,0.00,NEFT/RTGS,Year-end bank holiday delay; full settlement amount received on T+4.

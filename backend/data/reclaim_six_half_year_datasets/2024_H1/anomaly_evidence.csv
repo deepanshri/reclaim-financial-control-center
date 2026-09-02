@@ -1,0 +1,3 @@
+evidence_id,anomaly_id,transaction_id,reference_id,date,expected_value,actual_value,difference,gross_amount,method,evidence_note
+ev_settl_disc_2024_H1_set_2024_H1_00087,anom_2024_H1_001,set_2024_H1_00087,UTR2024H100087,2024-03-28,"INR 2,170,182.60","INR 2,152,482.60","INR 17,700.00",2170182.60,NEFT/RTGS,Calculated net payout versus actual settlement amount.
+ev_uncred_rf_2024_H1_rfnd_2024_H1_001,anom_2024_H1_002,rfnd_2024_H1_001,pay_2024_H1_00005,2024-05-15,"INR 5,200.00 credited to customer",INR 0.00 (no acquirer UTR),"INR 5,200.00",5200.00,card,Refund debited from merchant; customer bank credit not confirmed.

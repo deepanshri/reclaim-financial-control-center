@@ -1,0 +1,9 @@
+anomaly_id,type,status,title,detected_date,start_date,end_date,affected_transactions,expected_value,actual_value,financial_impact,currency,root_cause,evidence_type
+anom_001,fee_rate_increase,confirmed,Unexpected Fee Rate Increase,2026-05-28,2026-05-05,2026-05-28,1248,1.80%,2.30%,12450.00,INR,Promotional fee waiver expired on 2026-04-30; standard 2.30% rate applied from 2026-05-05.,fee
+anom_002,duplicate_refund,confirmed,Duplicate Refund,2026-05-24,2026-05-22,2026-05-23,1,4200.00,8400.00,4200.00,INR,"The same ₹4,200 refund was processed twice for one payment.",refund
+anom_003,missing_settlement,confirmed,Missing Settlement,2026-06-13,2026-06-11,2026-06-12,1,2110.00,0.00,2110.00,INR,A captured payment has no linked processed settlement record.,settlement
+anom_004,bank_credit_missing,confirmed,Settlement Not Found in Bank,2026-07-20,2026-07-17,2026-07-19,1,347472.22,0.00,347472.22,INR,A processed Razorpay settlement has no matching bank credit for its UTR.,bank_credit
+anom_005,refund_credit_missing,confirmed,Refund Not Reflected in Settlement,2026-08-08,2026-08-06,2026-08-07,1,1250.00,0.00,1250.00,INR,A processed refund appears in refund records but is absent from settlement reconciliation.,refund
+anom_006,settlement_delay,under_review,Settlement Delay,2026-08-12,2026-08-10,2026-08-12,1,T+1,T+3,8900.00,INR,Settlement arrived later than the normal processing window; manual review pending.,settlement
+anom_007,fee_rounding_difference,under_review,Fee Difference,2026-08-18,2026-08-18,2026-08-18,3,1020.00,1020.70,0.70,INR,Small rounding differences detected; review pending.,fee
+anom_008,refund_processing_delay,under_review,Refund Processing Delay,2026-08-20,2026-08-17,2026-08-20,2,Normal,Delayed,0.00,INR,Refunds remain pending beyond expected processing window; review pending.,refund

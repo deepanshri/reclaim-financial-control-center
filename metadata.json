@@ -1,0 +1,6 @@
+{
+  "name": "Reclaim AI - Financial Control Center",
+  "description": "AI-powered settlement auditor and financial control center for merchants to detect anomalies, investigate leaks, and reclaim revenue.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,2 @@
+period,start_date,end_date,status,transaction_count,gross_payment_volume,fee_total,refund_total,settlement_total,confirmed_anomaly_count,under_review_count,confirmed_loss,potential_recovery,recovery_requested,recovered,currency
+2025_H2,2025-07-01,2025-12-31,healthy,19200,494560079.59,8902081.15,6415138.00,479395898.44,2,0,36500.00,27695.00,24975.00,18000.00,INR

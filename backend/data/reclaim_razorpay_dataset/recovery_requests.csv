@@ -1,0 +1,3 @@
+request_id,anomaly_id,created_date,status,amount_requested,amount_recovered,recipient,subject,summary,evidence_count,resolved_date
+REQ-2026-001,anom_001,2026-05-30,resolved,12450.00,12450.00,Razorpay Support,Request for review of unexpected processing fee increase,"Razorpay applied a 2.30% fee instead of the agreed 1.80% rate across 1,248 transactions after a promotional waiver ended. Reclaim calculated ₹12,450 in excess charges.","4 sample records + 1,244 additional affected payments",2026-06-05
+REQ-2026-002,anom_002,2026-05-25,resolved,4200.00,4200.00,Razorpay Support,Request for review of duplicate refund,"A ₹4,200 refund was processed twice against the same payment. Reclaim identified the second refund as an excess debit.",2 refund records,2026-06-02

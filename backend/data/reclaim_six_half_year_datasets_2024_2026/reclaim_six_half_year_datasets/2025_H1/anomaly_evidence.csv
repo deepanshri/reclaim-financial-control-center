@@ -1,0 +1,8 @@
+evidence_id,anomaly_id,transaction_id,reference_id,date,expected_value,actual_value,difference,gross_amount,method,evidence_note
+ev_2025_H1_fee_001,anom_2025_H1_001,pay_2025_H1_00001,order_2025_H1_00001,2025-03-15,223.20,285.20,62.00,0.00,upi,1.80% MDR vs 2.30% charged - lifestyle skincare order.
+ev_2025_H1_fee_002,anom_2025_H1_001,pay_2025_H1_00002,order_2025_H1_00002,2025-04-22,514.80,657.80,143.00,0.00,card,1.80% MDR vs 2.30% charged - premium wellness bundle.
+ev_2025_H1_fee_003,anom_2025_H1_001,pay_2025_H1_00003,order_2025_H1_00003,2025-05-09,340.20,434.70,94.50,0.00,upi,1.80% MDR vs 2.30% charged.
+ev_2025_H1_fee_004,anom_2025_H1_001,pay_2025_H1_00004,order_2025_H1_00004,2025-02-01,189.00,241.50,52.50,0.00,wallet,1.80% MDR vs 2.30% charged.
+ev_2025_H1_ms_001,anom_2025_H1_002,pay_2025_H1_00005,order_2025_H1_00005,2025-05-25,18900.00,0.00,18900.00,0.00,card,Captured payment confirmed in gateway; no settlement batch reference found.
+ev_2025_H1_bc_001,anom_2025_H1_003,set_2025_H1_00052,UTR2025H100052,2025-04-15,22450.00,0.00,22450.00,0.00,NEFT/RTGS,Gateway marked processed; zero bank credit for UTR UTR2025H100052 across entire April statement.
+ev_2025_H1_dly_001,anom_2025_H1_004,set_2025_H1_00198,UTR2025H100198,2025-06-27,T+1,T+3,+2 days,0.00,NEFT/RTGS,Bank technical issue delayed settlement by 2 days; full amount eventually received.

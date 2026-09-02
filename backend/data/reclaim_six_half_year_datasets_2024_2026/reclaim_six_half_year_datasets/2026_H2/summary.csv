@@ -1,0 +1,2 @@
+period,start_date,end_date,status,transaction_count,gross_payment_volume,fee_total,refund_total,settlement_total,confirmed_anomaly_count,under_review_count,confirmed_loss,potential_recovery,recovery_requested,recovered,currency
+2026_H2,2026-07-01,2026-12-31,action_required,22600,579708756.01,10707563.57,8016560.00,561344702.84,6,1,408875.00,312455.00,312455.00,42740.00,INR

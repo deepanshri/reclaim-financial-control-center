@@ -1,0 +1,4 @@
+request_id,anomaly_id,created_date,resolved_date,status,amount_requested,amount_recovered,recipient,subject,summary,evidence_count
+REQ-2025_H1-001,anom_2025_H1_001,2025-07-02,,under_review,117300.00,0.00,Razorpay Support,Request for review of MDR fee rate overcharge,"Dispute filed for 0.50% fee overcharge on 1,150 transactions (INR 1,46,625 affected). Razorpay opened internal audit.",4
+REQ-2025_H1-002,anom_2025_H1_002,2025-06-02,2025-06-18,resolved,16065.00,16065.00,Razorpay Support,Request for settlement of captured payment pay_2025_H1_00005,"Unsettled captured payment pay_2025_H1_00005 re-identified in settlement batch. INR 16,065.00 credited on 2025-06-18.",1
+REQ-2025_H1-003,anom_2025_H1_003,2025-04-20,,submitted,15715.00,0.00,Razorpay Support,Request for investigation of missing bank credit - UTR UTR2025H100052,Bank trace investigation submitted to Razorpay nodal banking team for UTR UTR2025H100052.,1

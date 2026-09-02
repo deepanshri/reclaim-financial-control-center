@@ -1,0 +1,22 @@
+{
+  "merchant_name": "Electronics Hub",
+  "merchant_id": "mid_demo_EH98218042",
+  "currency": "INR",
+  "payment_provider": "Razorpay",
+  "dataset_period": {
+    "start": "2024-01-01",
+    "end": "2026-08-31",
+    "years": [
+      2024,
+      2025,
+      2026
+    ]
+  },
+  "contract": {
+    "fee_rate": 0.018,
+    "effective_from": "2024-01-01",
+    "effective_to": "2026-04-30"
+  },
+  "demo_status": "synthetic",
+  "notes": "Synthetic deterministic demo data modeled on public Razorpay API entity structures; not real merchant data."
+}

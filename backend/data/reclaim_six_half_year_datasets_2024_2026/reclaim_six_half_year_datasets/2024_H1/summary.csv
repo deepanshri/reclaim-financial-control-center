@@ -1,0 +1,2 @@
+period,start_date,end_date,status,transaction_count,gross_payment_volume,fee_total,refund_total,settlement_total,confirmed_anomaly_count,under_review_count,confirmed_loss,potential_recovery,recovery_requested,recovered,currency
+2024_H1,2024-01-01,2024-06-30,healthy,16200,414362600.48,7458527.17,4898198.00,402408373.31,2,0,22900.00,17695.00,0.00,0.00,INR

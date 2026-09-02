@@ -1,0 +1,2 @@
+period,start_date,end_date,status,transaction_count,gross_payment_volume,fee_total,refund_total,settlement_total,confirmed_anomaly_count,under_review_count,confirmed_loss,potential_recovery,recovery_requested,recovered,under_review_amount,not_recovered,currency
+2025_H1,2025-01-01,2025-06-30,ACTION NEEDED,18100,463467475.46,8486821.69,5511351.00,449675218.97,3,1,185757.39,185417.19,185417.19,16065.00,166857.39,2494.80,INR

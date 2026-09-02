@@ -1,0 +1,2 @@
+request_id,anomaly_id,created_date,resolved_date,status,amount_requested,amount_recovered,recipient,subject,summary,evidence_count
+REQ-2025_H2-001,anom_2025_H2_001,2025-11-08,2025-12-04,resolved,24975.00,18000.00,Razorpay Support,Request for review of Dussehra batch settlement shortfall,"Settlement shortfall of INR 33,300.00 disputed. Razorpay confirmed INR 18,000.00 processing error; credited back.",1

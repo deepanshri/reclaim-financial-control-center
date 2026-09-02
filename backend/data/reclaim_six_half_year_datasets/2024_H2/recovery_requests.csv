@@ -1,0 +1,4 @@
+request_id,anomaly_id,created_date,resolved_date,status,amount_requested,amount_recovered,recipient,subject,summary,evidence_count
+REQ-2024_H2-001,anom_2024_H2_001,2025-01-02,2025-02-14,resolved,244167.97,158000.00,Razorpay Support,"Request for review of MDR fee overcharge - 1,950 transactions","Dispute filed for contracted 1.80% vs charged 2.30% MDR on 1,950 payments. Engine-verified excess MDR INR 244,167.97; eligible recovery INR 244,167.97. Recovered INR 158,000.00.",4
+REQ-2024_H2-002,anom_2024_H2_002,2024-12-17,2024-12-26,resolved,14800.00,14060.00,Razorpay Support,Request for reversal of duplicate refund debit,"Duplicate refund debit of INR 14,800.00 confirmed against rfnd_2024_H2_002. Eligible recovery INR 14,800.00. Recovered INR 14,060.00.",2
+

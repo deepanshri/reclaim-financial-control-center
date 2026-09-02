@@ -1,0 +1,8 @@
+evidence_id,anomaly_id,transaction_id,reference_id,date,expected_value,actual_value,difference,gross_amount,method,evidence_note
+ev_fee_2026_H1_1_pay_2026_H1_00058,anom_2026_H1_001,pay_2026_H1_00058,order_2026_H1_00058,2026-01-01,1.80% (INR 29.47),2.30% (INR 37.65),+0.50% (+INR 8.18),1637.10,upi,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_fee_2026_H1_2_pay_2026_H1_00199,anom_2026_H1_001,pay_2026_H1_00199,order_2026_H1_00199,2026-01-01,1.80% (INR 33.85),2.30% (INR 43.25),+0.50% (+INR 9.40),1880.64,upi,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_fee_2026_H1_3_pay_2026_H1_00353,anom_2026_H1_001,pay_2026_H1_00353,order_2026_H1_00353,2026-01-01,1.80% (INR 653.35),2.30% (INR 834.84),+0.50% (+INR 181.49),36297.27,card,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_fee_2026_H1_4_pay_2026_H1_00453,anom_2026_H1_001,pay_2026_H1_00453,order_2026_H1_00453,2026-01-01,1.80% (INR 67.75),2.30% (INR 86.57),+0.50% (+INR 18.82),3763.95,upi,Contracted 1.80% fee rate vs charged 2.30% fee rate.
+ev_ref_2026_H1_001_orig,anom_2026_H1_002,rfnd_2026_H1_001,pay_2026_H1_00005,2026-05-25,"INR 21,400.00","INR 21,400.00",INR 0.00,21400.00,upi,Original legitimate refund processed for payment.
+ev_ref_2026_H1_001_dup,anom_2026_H1_002,rfnd_2026_H1_002,pay_2026_H1_00005,2026-05-27,INR 0.00 (Already refunded),"INR 21,400.00","+INR 21,400.00",21400.00,upi,Second refund processed for the same payment; excess debit.
+ev_bank_miss_2026_H1_set_2026_H1_bc_ifsc,anom_2026_H1_003,set_2026_H1_bc_ifsc,UTR2026H1BCIFSC,2026-03-18,"Bank Credit of INR 18,500.00 (UTR UTR2026H1BCIFSC)",No credit in bank account (INR 0.00),"Missing deposit of INR 18,500.00",18500.00,Bank Settlement,A processed Razorpay settlement has no matching bank credit for its UTR.

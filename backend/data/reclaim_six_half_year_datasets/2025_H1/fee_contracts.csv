@@ -1,0 +1,2 @@
+contract_id,merchant_id,provider,fee_type,contracted_rate,currency,effective_from,effective_to,notes
+contract_2025_H1,mid_demo_ZC771042,Razorpay,processing_fee,0.018,INR,2025-01-01,2025-06-30,Synthetic demo pricing. Not real merchant data.
