@@ -14,3 +14,4 @@ backend/data/*.sqlite-journal
 *.py[cod]
 .venv/
 backend/.venv/
+.vercel

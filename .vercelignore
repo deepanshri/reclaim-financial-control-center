@@ -1,0 +1,9 @@
+# Frontend-only Vercel build. The FastAPI API and CSV ledgers live on Render.
+backend
+.venv
+node_modules
+dist
+coverage
+*.sqlite
+*.log
+.env.local
