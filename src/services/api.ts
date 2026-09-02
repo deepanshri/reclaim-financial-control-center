@@ -1,8 +1,22 @@
 /**
  * Centralized API client. Attaches the session token and surfaces FastAPI errors.
+ *
+ * Local `npm run dev` leaves the base empty so `/api/*` stays same-origin and the
+ * Vite proxy forwards to http://127.0.0.1:8000. Production builds must call Render
+ * even if VITE_API_BASE_URL is missing or accidentally set to localhost.
  */
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+const RENDER_API_ORIGIN = 'https://reclaim-financial-control-center.onrender.com';
+
+function resolveApiBase(): string {
+  const configured = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/$/, '');
+  if (import.meta.env.PROD) {
+    return configured || RENDER_API_ORIGIN;
+  }
+  return configured;
+}
+
+const API_BASE = resolveApiBase();
 const TOKEN_KEY = 'reclaim_session_token';
 const UNAUTHORIZED_EVENT = 'reclaim:unauthorized';
 
