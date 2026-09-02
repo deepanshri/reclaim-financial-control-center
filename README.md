@@ -32,7 +32,7 @@ npm install
 npm run dev
 ```
 
-The Vite dev server (and `npm run preview`) proxy `/api` to `http://127.0.0.1:8000`. Leave `VITE_API_BASE_URL` empty so the session cookie stays same-origin.
+The Vite dev server (and `npm run preview`) proxy `/api` to `http://127.0.0.1:8000`. Leave `VITE_API_BASE_URL` empty locally so requests stay same-origin. Production builds use `.env.production` (`https://reclaim-financial-control-center.onrender.com`).
 
 ## Checks
 

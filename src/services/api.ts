@@ -2,7 +2,7 @@
  * Centralized API client. Attaches the session token and surfaces FastAPI errors.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const TOKEN_KEY = 'reclaim_session_token';
 const UNAUTHORIZED_EVENT = 'reclaim:unauthorized';
 
