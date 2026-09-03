@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { visualSpring } from '../motion/presets';
 
 const visualClass =
-  'absolute hidden overflow-visible lg:block w-[240px] xl:w-[320px] 2xl:w-[360px] pointer-events-auto cursor-default will-change-transform';
+  'login-visual absolute hidden overflow-visible lg:block pointer-events-auto cursor-default will-change-transform';
 
 interface VisualSlotProps {
   className: string;
