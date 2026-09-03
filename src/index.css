@@ -47,6 +47,11 @@
     --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     font-family: "Satoshi", "SF Pro Text", "Plus Jakarta Sans", sans-serif;
     background-color: #F5F5F0;
@@ -503,4 +508,31 @@ html.dark .login-bg-wash {
 
 #main-content:focus {
   outline: none;
+}
+
+/*
+  Production Chrome uses the 16px html rem root. Body is 15px, so Tailwind rem
+  padding/gaps/buttons read ~6.7% larger than the intended type size.
+  Unlayered so these beat Tailwind utilities. Login is excluded.
+*/
+html.reclaim-workspace {
+  font-size: 15px;
+}
+
+html.reclaim-workspace #main-content h1.font-display {
+  font-size: 28px;
+}
+
+@media (min-width: 640px) {
+  html.reclaim-workspace #main-content h1.font-display {
+    font-size: 34px;
+  }
+}
+
+html.reclaim-workspace #main-content h2 {
+  font-size: 18px;
+}
+
+html.reclaim-workspace #main-content .text-\[17px\]:not(.font-number) {
+  font-size: 16px;
 }

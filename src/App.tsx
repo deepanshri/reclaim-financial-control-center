@@ -195,6 +195,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('reclaim-workspace', isAuthenticated);
+    return () => root.classList.remove('reclaim-workspace');
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     if (!isAuthenticated) {
       if (window.location.pathname !== '/login') {
         window.history.replaceState({}, '', '/login');
