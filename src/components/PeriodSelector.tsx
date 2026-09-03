@@ -29,12 +29,13 @@ function periodLabelFromInfo(info: PeriodInfo): string {
 function optionsFromPeriods(availablePeriods: PeriodInfo[]): PeriodOption[] {
   if (availablePeriods.length > 0) {
     return availablePeriods.map((info) => {
-      const engineLevel = info.severity_level || info.review_status || 'healthy';
+      const ready = (info.confirmed_finding_count || 0) > 0 || (info.confirmed_loss_inr || 0) > 0;
+      const engineLevel = ready ? (info.severity_level || info.review_status || 'healthy') : '';
       return {
         value: info.key,
         label: periodLabelFromInfo(info),
         engineLevel,
-        statusLabel: info.severity_label || merchantSeverityLabel(engineLevel),
+        statusLabel: ready ? (info.severity_label || merchantSeverityLabel(engineLevel)) : '',
       };
     });
   }

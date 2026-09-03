@@ -1,4 +1,7 @@
 from typing import Optional
+import logging
+import time
+
 from fastapi import APIRouter, Query
 from app.api.period import period_or_400
 from app.schemas.schemas import (
@@ -10,6 +13,7 @@ from app.schemas.schemas import (
 from app.services.financial_engine import financial_engine
 
 router = APIRouter(tags=["Dashboard"])
+logger = logging.getLogger("reclaim.dashboard")
 
 
 @router.get("/dashboard", response_model=DashboardResponse, summary="Dashboard Overview & Health")
@@ -17,6 +21,7 @@ def get_dashboard(
     period: Optional[str] = Query(None, description="Audit period key (e.g. 2026_H2, 2025_H1, 2024_H1)"),
     year: Optional[int] = Query(None, description="Filter year (e.g. 2026, 2025, 2024)"),
 ) -> DashboardResponse:
+    started = time.perf_counter()
     period_key = period_or_400(period, year)
     status_data = financial_engine.get_financial_status(period=period_key)
     all_findings = financial_engine.get_findings(period=period_key)
@@ -48,9 +53,17 @@ def get_dashboard(
             under_review_summaries.append(summary)
 
     financial_status = FinancialStatusSchema(**status_data)
-    available_periods = [PeriodInfo(**p) for p in financial_engine.get_available_periods()]
+    available_periods = [PeriodInfo(**p) for p in financial_engine.get_available_periods(eager=False)]
+    financial_engine.schedule_background_warm(period_key)
 
     period_str = status_data.get("period", "2026_H2")
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    logger.info(
+        "dashboard route period=%s elapsed=%.0fms findings=%d",
+        period_key,
+        elapsed_ms,
+        len(all_findings),
+    )
     return DashboardResponse(
         financial_status=financial_status,
         confirmed_findings=confirmed_summaries,

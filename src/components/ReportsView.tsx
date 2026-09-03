@@ -328,6 +328,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   if (isLoading || !periodReady) {
     return (
       <div className="p-6 sm:p-8 lg:p-12 max-w-[1600px] mx-auto w-full space-y-8 font-sans">
+        <p className="text-[16px] text-[#787168] dark:text-[#A8A29E]">
+          Preparing this period's audit…
+        </p>
         <div className="h-12 bg-[#E2E2DC]/50 dark:bg-[#26221E]/50 rounded-2xl w-80 animate-pulse"></div>
         <div className="h-44 bg-[#FFFFFF] dark:bg-[#1A1815] rounded-3xl border border-[#E2E2DC] dark:border-[#2D2824] p-8 animate-pulse shadow-sm"></div>
         <div className="space-y-6">

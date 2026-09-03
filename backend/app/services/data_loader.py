@@ -2,9 +2,10 @@ import csv
 import json
 import logging
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from app.core.exceptions import InvalidPeriodError
 
@@ -66,35 +67,31 @@ class DataLoader:
             self.data_dir = Path(data_dir)
 
         self._periods: Dict[str, PeriodData] = {}
+        self._loaded_periods: Set[str] = set()
         self._selection_meta: Dict[str, Any] = {}
         self._is_loaded: bool = False
         self._load_lock = threading.Lock()
 
     def normalize_period_key(self, period: Optional[str] = None, year: Optional[int] = None) -> str:
         """Resolves period string or year to a valid period key. Explicit unknown keys are never substituted."""
-        self.load_dataset()
-        known = list(self._periods.keys()) or list(PERIOD_KEYS)
+        known = list(PERIOD_KEYS)
 
         if period:
             cleaned = period.strip().replace("-", "_").replace(" ", "_").upper()
-            if cleaned in self._periods:
+            if cleaned in known:
                 return cleaned
             for key in PERIOD_KEYS:
-                if (key == cleaned or key.replace("_", "") == cleaned) and key in self._periods:
+                if key == cleaned or key.replace("_", "") == cleaned:
                     return key
             raise InvalidPeriodError(period, known)
 
         if year is not None:
             yr_str = str(year)
             for key in (f"{yr_str}_H2", f"{yr_str}_H1"):
-                if key in self._periods:
+                if key in known:
                     return key
             raise InvalidPeriodError(str(year), known)
 
-        if DEFAULT_PERIOD in self._periods:
-            return DEFAULT_PERIOD
-        if known:
-            return known[-1]
         return DEFAULT_PERIOD
 
     def verify_files_exist(self) -> None:
@@ -105,128 +102,149 @@ class DataLoader:
             )
 
         for p_key in PERIOD_KEYS:
-            p_dir = self.data_dir / p_key
-            if not p_dir.exists() or not p_dir.is_dir():
-                raise DatasetValidationError(f"Period folder missing: {p_dir.resolve()}")
-            missing = [f for f in REQUIRED_PERIOD_FILES if not (p_dir / f).is_file()]
-            if missing:
-                raise DatasetValidationError(f"Period {p_key} missing files: {', '.join(missing)}")
+            self._verify_period_files(p_key)
+
+    def _verify_period_files(self, p_key: str) -> None:
+        if not self.data_dir.exists() or not self.data_dir.is_dir():
+            raise DatasetValidationError(
+                f"Dataset root directory does not exist: {self.data_dir.resolve()}"
+            )
+        p_dir = self.data_dir / p_key
+        if not p_dir.exists() or not p_dir.is_dir():
+            raise DatasetValidationError(f"Period folder missing: {p_dir.resolve()}")
+        missing = [f for f in REQUIRED_PERIOD_FILES if not (p_dir / f).is_file()]
+        if missing:
+            raise DatasetValidationError(f"Period {p_key} missing files: {', '.join(missing)}")
+
+    def ensure_period(self, period: Optional[str] = None, year: Optional[int] = None) -> str:
+        key = self.normalize_period_key(period, year)
+        with self._load_lock:
+            self._load_period_unlocked(key)
+        return key
 
     def load_dataset(self, force_reload: bool = False) -> None:
         with self._load_lock:
-            self._load_unlocked(force_reload=force_reload)
+            if self._is_loaded and not force_reload:
+                return
+            self.verify_files_exist()
+            for p_key in PERIOD_KEYS:
+                self._load_period_unlocked(p_key, force_reload=force_reload)
+            self._is_loaded = True
 
-    def _load_unlocked(self, force_reload: bool = False) -> None:
-        if self._is_loaded and not force_reload:
+    def _load_period_unlocked(self, p_key: str, force_reload: bool = False) -> None:
+        if p_key in self._loaded_periods and not force_reload:
             return
 
-        self.verify_files_exist()
-        logger.info(f"Loading Reclaim six half-year datasets from {self.data_dir.resolve()}")
+        self._verify_period_files(p_key)
+        started = time.perf_counter()
+        logger.info("Loading period %s from %s", p_key, self.data_dir.resolve())
 
-        # Load selection metadata if present
         selection_file = self.data_dir / "selection.json"
-        if selection_file.is_file():
+        if not self._selection_meta and selection_file.is_file():
             with selection_file.open("r", encoding="utf-8") as f:
                 self._selection_meta = json.load(f)
 
-        self._periods = {}
-        for p_key in PERIOD_KEYS:
-            p_dir = self.data_dir / p_key
-            p_data = PeriodData(p_key, p_dir)
+        p_dir = self.data_dir / p_key
+        p_data = PeriodData(p_key, p_dir)
 
-            # 1. dataset_meta.json
-            with (p_dir / "dataset_meta.json").open("r", encoding="utf-8") as f:
-                p_data.meta = json.load(f)
+        # 1. dataset_meta.json
+        with (p_dir / "dataset_meta.json").open("r", encoding="utf-8") as f:
+            p_data.meta = json.load(f)
 
-            # 2. payments.csv
-            p_data.payments = self._load_csv(p_dir / "payments.csv")
-            for p in p_data.payments:
-                if "created_at" in p and p["created_at"]:
+        # 2. payments.csv
+        p_data.payments = self._load_csv(p_dir / "payments.csv")
+        for p in p_data.payments:
+            if "created_at" in p and p["created_at"]:
+                try:
+                    ts = int(p["created_at"])
+                    p["created_at_dt"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+                    p["created_date"] = p["created_at_dt"][:10]
+                    p["created_year"] = int(p["created_date"][:4])
+                except (ValueError, TypeError):
+                    p["created_at_dt"] = str(p.get("created_at", ""))
+                    p["created_date"] = str(p.get("created_date", ""))
+                    p["created_year"] = int(p_key[:4])
+
+        # 3. refunds.csv
+        p_data.refunds = self._load_csv(p_dir / "refunds.csv")
+        for r in p_data.refunds:
+            if "created_at" in r and r["created_at"]:
+                try:
+                    ts = int(r["created_at"])
+                    r["created_at_dt"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+                    r["created_date"] = r["created_at_dt"][:10]
+                    r["created_year"] = int(r["created_date"][:4])
+                except (ValueError, TypeError):
+                    r["created_at_dt"] = str(r.get("created_at", ""))
+                    r["created_date"] = str(r.get("created_date", ""))
+                    r["created_year"] = int(p_key[:4])
+
+        # 4. settlements.csv
+        p_data.settlements = self._load_csv(p_dir / "settlements.csv")
+        for s in p_data.settlements:
+            if "created_at" in s and s["created_at"]:
+                try:
+                    ts = int(s["created_at"])
+                    s["created_at_dt"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+                except (ValueError, TypeError):
+                    s["created_at_dt"] = str(s.get("created_at", ""))
+
+        # 5. settlement_recon.csv
+        p_data.settlement_recon = self._load_csv(p_dir / "settlement_recon.csv")
+
+        # 6. bank_credits.csv
+        p_data.bank_credits = self._load_csv(p_dir / "bank_credits.csv")
+
+        # 7. fee_contracts.csv
+        p_data.fee_contracts = self._load_csv(p_dir / "fee_contracts.csv")
+
+        # 8. anomalies.csv
+        p_data.anomalies = self._load_csv(p_dir / "anomalies.csv")
+        for a in p_data.anomalies:
+            if "affected_transactions" in a:
+                try:
+                    a["affected_transactions"] = int(a["affected_transactions"])
+                except (ValueError, TypeError):
+                    pass
+            if "financial_impact" in a:
+                try:
+                    a["financial_impact"] = float(a["financial_impact"])
+                except (ValueError, TypeError):
+                    pass
+
+        # 9. anomaly_evidence.csv
+        p_data.anomaly_evidence = self._load_csv(p_dir / "anomaly_evidence.csv")
+        for ev in p_data.anomaly_evidence:
+            for float_field in ["gross_amount", "expected_value", "actual_value", "difference"]:
+                if float_field in ev:
                     try:
-                        ts = int(p["created_at"])
-                        p["created_at_dt"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-                        p["created_date"] = p["created_at_dt"][:10]
-                        p["created_year"] = int(p["created_date"][:4])
-                    except (ValueError, TypeError):
-                        p["created_at_dt"] = str(p.get("created_at", ""))
-                        p["created_date"] = str(p.get("created_date", ""))
-                        p["created_year"] = int(p_key[:4])
-
-            # 3. refunds.csv
-            p_data.refunds = self._load_csv(p_dir / "refunds.csv")
-            for r in p_data.refunds:
-                if "created_at" in r and r["created_at"]:
-                    try:
-                        ts = int(r["created_at"])
-                        r["created_at_dt"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-                        r["created_date"] = r["created_at_dt"][:10]
-                        r["created_year"] = int(r["created_date"][:4])
-                    except (ValueError, TypeError):
-                        r["created_at_dt"] = str(r.get("created_at", ""))
-                        r["created_date"] = str(r.get("created_date", ""))
-                        r["created_year"] = int(p_key[:4])
-
-            # 4. settlements.csv
-            p_data.settlements = self._load_csv(p_dir / "settlements.csv")
-            for s in p_data.settlements:
-                if "created_at" in s and s["created_at"]:
-                    try:
-                        ts = int(s["created_at"])
-                        s["created_at_dt"] = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-                    except (ValueError, TypeError):
-                        s["created_at_dt"] = str(s.get("created_at", ""))
-
-            # 5. settlement_recon.csv
-            p_data.settlement_recon = self._load_csv(p_dir / "settlement_recon.csv")
-
-            # 6. bank_credits.csv
-            p_data.bank_credits = self._load_csv(p_dir / "bank_credits.csv")
-
-            # 7. fee_contracts.csv
-            p_data.fee_contracts = self._load_csv(p_dir / "fee_contracts.csv")
-
-            # 8. anomalies.csv
-            p_data.anomalies = self._load_csv(p_dir / "anomalies.csv")
-            for a in p_data.anomalies:
-                if "affected_transactions" in a:
-                    try:
-                        a["affected_transactions"] = int(a["affected_transactions"])
+                        ev[float_field] = float(ev[float_field])
                     except (ValueError, TypeError):
                         pass
-                if "financial_impact" in a:
+
+        # 10. recovery_requests.csv
+        p_data.recovery_requests = self._load_csv(p_dir / "recovery_requests.csv")
+        for req in p_data.recovery_requests:
+            for float_field in ["amount_requested", "amount_recovered"]:
+                if float_field in req:
                     try:
-                        a["financial_impact"] = float(a["financial_impact"])
+                        req[float_field] = float(req[float_field])
                     except (ValueError, TypeError):
                         pass
 
-            # 9. anomaly_evidence.csv
-            p_data.anomaly_evidence = self._load_csv(p_dir / "anomaly_evidence.csv")
-            for ev in p_data.anomaly_evidence:
-                for float_field in ["gross_amount", "expected_value", "actual_value", "difference"]:
-                    if float_field in ev:
-                        try:
-                            ev[float_field] = float(ev[float_field])
-                        except (ValueError, TypeError):
-                            pass
+        # 11. summary.csv
+        p_data.summary = self._load_csv(p_dir / "summary.csv")
 
-            # 10. recovery_requests.csv
-            p_data.recovery_requests = self._load_csv(p_dir / "recovery_requests.csv")
-            for req in p_data.recovery_requests:
-                for float_field in ["amount_requested", "amount_recovered"]:
-                    if float_field in req:
-                        try:
-                            req[float_field] = float(req[float_field])
-                        except (ValueError, TypeError):
-                            pass
-
-            # 11. summary.csv
-            p_data.summary = self._load_csv(p_dir / "summary.csv")
-
-            self._periods[p_key] = p_data
-
-        self._is_loaded = True
+        self._periods[p_key] = p_data
+        self._loaded_periods.add(p_key)
+        if len(self._loaded_periods) == len(PERIOD_KEYS):
+            self._is_loaded = True
+        elapsed_ms = (time.perf_counter() - started) * 1000
         logger.info(
-            f"Successfully loaded all {len(self._periods)} half-year periods: {', '.join(self._periods.keys())}"
+            "Loaded raw period %s in %.0f ms (%d payments)",
+            p_key,
+            elapsed_ms,
+            len(p_data.payments),
         )
 
     def _load_csv(self, file_path: Path) -> List[Dict[str, Any]]:
@@ -239,13 +257,11 @@ class DataLoader:
     # -------------------------------------------------------------------------
 
     def get_period_data(self, period: Optional[str] = None, year: Optional[int] = None) -> PeriodData:
-        self.load_dataset()
-        key = self.normalize_period_key(period, year)
+        key = self.ensure_period(period, year)
         return self._periods[key]
 
     def get_all_period_keys(self) -> List[str]:
-        self.load_dataset()
-        return PERIOD_KEYS
+        return list(PERIOD_KEYS)
 
     def get_merchant_info(self, period: Optional[str] = None) -> Dict[str, Any]:
         p = self.get_period_data(period)
@@ -388,9 +404,7 @@ class DataLoader:
         return result
 
     def get_anomaly_by_id(self, anomaly_id: str, period: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        self.load_dataset()
-        # Search in given period or across all periods if not found
-        periods_to_search = [self.get_period_data(period)] if period else list(self._periods.values())
+        periods_to_search = [self.get_period_data(period)] if period else [self.get_period_data(key) for key in PERIOD_KEYS]
         for p in periods_to_search:
             for anom in p.anomalies:
                 if anom.get("anomaly_id") == anomaly_id:

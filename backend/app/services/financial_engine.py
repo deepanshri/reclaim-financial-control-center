@@ -1,4 +1,6 @@
 import logging
+import threading
+import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -64,11 +66,24 @@ class FinancialEngine:
         self.reference_auditor = ReferenceAnomalyAuditor(self.repo)
         self._findings_cache: Dict[str, List[Finding]] = {}
         self._periods_cache: Optional[List[Dict[str, Any]]] = None
+        self._findings_lock = threading.Lock()
+        self._period_findings_locks: Dict[str, threading.Lock] = {}
+        self._warm_lock = threading.Lock()
+        self._warm_started = False
+
+    def _lock_for_period(self, p_key: str) -> threading.Lock:
+        with self._findings_lock:
+            lock = self._period_findings_locks.get(p_key)
+            if lock is None:
+                lock = threading.Lock()
+                self._period_findings_locks[p_key] = lock
+            return lock
 
     def rerun_period(self, period: str) -> None:
-        self.repo.load(force_reload=True)
+        self.repo.load(force_reload=True, period=period)
         prefix = f"{period}:"
-        self._findings_cache = {k: v for k, v in self._findings_cache.items() if not k.startswith(prefix)}
+        with self._findings_lock:
+            self._findings_cache = {k: v for k, v in self._findings_cache.items() if not k.startswith(prefix)}
         self._periods_cache = None
 
     # -------------------------------------------------------------------------
@@ -84,64 +99,84 @@ class FinancialEngine:
         """
         Executes all rule-based detectors on raw period records.
         """
-        self.repo.load()
         p_key = self.repo.normalize_period_key(period, year)
         unfiltered_key = f"{p_key}:*"
         cache_key = f"{p_key}:{status or '*'}"
-        if cache_key in self._findings_cache:
-            return list(self._findings_cache[cache_key])
-        if unfiltered_key in self._findings_cache:
-            all_findings = list(self._findings_cache[unfiltered_key])
-            if status is not None:
-                all_findings = [f for f in all_findings if f.status == status]
-                self._findings_cache[cache_key] = list(all_findings)
-            return all_findings
 
-        all_findings: List[Finding] = []
+        def cached_findings() -> Optional[List[Finding]]:
+            if cache_key in self._findings_cache:
+                return list(self._findings_cache[cache_key])
+            if unfiltered_key in self._findings_cache:
+                all_cached = list(self._findings_cache[unfiltered_key])
+                if status is not None:
+                    all_cached = [f for f in all_cached if f.status == status]
+                    self._findings_cache[cache_key] = list(all_cached)
+                return all_cached
+            return None
 
-        # 1. Fee Anomaly Detector
-        fee_findings = self.fee_detector.detect(period=p_key, year=year)
-        all_findings.extend(fee_findings)
+        with self._findings_lock:
+            hit = cached_findings()
+            if hit is not None:
+                return hit
 
-        # 2. Duplicate Refund Detector
-        dup_findings = self.duplicate_refund_detector.detect(period=p_key, year=year)
-        all_findings.extend(dup_findings)
+        with self._lock_for_period(p_key):
+            with self._findings_lock:
+                hit = cached_findings()
+                if hit is not None:
+                    return hit
 
-        # 3. Missing Settlement Detector
-        miss_settl_findings = self.missing_settlement_detector.detect(period=p_key, year=year)
-        all_findings.extend(miss_settl_findings)
+            started = time.perf_counter()
+            all_findings: List[Finding] = []
 
-        # 4. Bank Credit Missing Detector
-        bank_findings = self.bank_credit_detector.detect(period=p_key, year=year)
-        all_findings.extend(bank_findings)
+            # 1. Fee Anomaly Detector
+            fee_findings = self.fee_detector.detect(period=p_key, year=year)
+            all_findings.extend(fee_findings)
 
-        # 5. Settlement amount discrepancy (expected net vs actual payout)
-        disc_findings = self.settlement_discrepancy_detector.detect(period=p_key, year=year)
-        all_findings.extend(disc_findings)
+            # 2. Duplicate Refund Detector
+            dup_findings = self.duplicate_refund_detector.detect(period=p_key, year=year)
+            all_findings.extend(dup_findings)
 
-        # 6. Uncredited customer refunds
-        uncred_findings = self.uncredited_refund_detector.detect(period=p_key, year=year)
-        all_findings.extend(uncred_findings)
+            # 3. Missing Settlement Detector
+            miss_settl_findings = self.missing_settlement_detector.detect(period=p_key, year=year)
+            all_findings.extend(miss_settl_findings)
 
-        # 7. Reference Auditor (under-review items such as settlement delay)
-        confirmed_ids = [f.finding_id for f in all_findings]
-        confirmed_types = [f.type for f in all_findings]
-        ref_findings = self.reference_auditor.get_audited_reference_findings(
-            confirmed_finding_ids=confirmed_ids,
-            confirmed_types=confirmed_types,
-            period=p_key,
-            year=year,
-        )
-        all_findings.extend(ref_findings)
+            # 4. Bank Credit Missing Detector
+            bank_findings = self.bank_credit_detector.detect(period=p_key, year=year)
+            all_findings.extend(bank_findings)
 
-        self._findings_cache[f"{p_key}:*"] = list(all_findings)
+            # 5. Settlement amount discrepancy (expected net vs actual payout)
+            disc_findings = self.settlement_discrepancy_detector.detect(period=p_key, year=year)
+            all_findings.extend(disc_findings)
 
-        # Filter by status if requested
-        if status is not None:
-            all_findings = [f for f in all_findings if f.status == status]
-            self._findings_cache[f"{p_key}:{status}"] = list(all_findings)
+            # 6. Uncredited customer refunds
+            uncred_findings = self.uncredited_refund_detector.detect(period=p_key, year=year)
+            all_findings.extend(uncred_findings)
 
-        return all_findings
+            # 7. Reference Auditor (under-review items such as settlement delay)
+            confirmed_ids = [f.finding_id for f in all_findings]
+            confirmed_types = [f.type for f in all_findings]
+            ref_findings = self.reference_auditor.get_audited_reference_findings(
+                confirmed_finding_ids=confirmed_ids,
+                confirmed_types=confirmed_types,
+                period=p_key,
+                year=year,
+            )
+            all_findings.extend(ref_findings)
+
+            with self._findings_lock:
+                self._findings_cache[unfiltered_key] = list(all_findings)
+                if status is not None:
+                    filtered = [f for f in all_findings if f.status == status]
+                    self._findings_cache[cache_key] = list(filtered)
+                    all_findings = filtered
+
+            logger.info(
+                "financial engine findings period=%s elapsed=%.0fms findings=%d",
+                p_key,
+                (time.perf_counter() - started) * 1000,
+                len(self._findings_cache[unfiltered_key]),
+            )
+            return list(all_findings)
 
     def get_finding_by_id(self, finding_id: str, period: Optional[str] = None) -> Optional[Finding]:
         all_findings = self.get_findings(period=period)
@@ -170,7 +205,7 @@ class FinancialEngine:
         Calculates exact monetary aggregates across payments, fees, refunds,
         settlements, losses, and recoveries for the selected period.
         """
-        self.repo.load()
+        started = time.perf_counter()
         p_key = self.repo.normalize_period_key(period, year)
 
         payments = self.repo.get_all_payments(period=p_key, year=year)
@@ -264,7 +299,7 @@ class FinancialEngine:
         yr_int = int(p_key[:4]) if p_key else 2026
         start_date, end_date = PERIOD_RANGES.get(p_key, ("2024-01-01", "2026-12-31"))
 
-        return {
+        result = {
             "period": p_key,
             "period_label": PERIOD_LABELS.get(p_key, p_key),
             "period_start": start_date,
@@ -302,6 +337,12 @@ class FinancialEngine:
             "is_action_required": is_action,
             "review_status": review_status,
         }
+        logger.info(
+            "financial engine status period=%s elapsed=%.0fms",
+            p_key,
+            (time.perf_counter() - started) * 1000,
+        )
+        return result
 
     def calculate_health_score(
         self,
@@ -334,68 +375,137 @@ class FinancialEngine:
     # Available Periods & Metadata
     # -------------------------------------------------------------------------
 
-    def get_available_periods(self) -> List[Dict[str, Any]]:
+    def _period_summary_from_findings(self, p_key: str, findings: List[Finding]) -> Dict[str, Any]:
+        confirmed = [f for f in findings if f.status == "confirmed"]
+        confirmed_loss_paise = sum(f.financial_impact_paise for f in confirmed)
+        confirmed_loss_inr = round(confirmed_loss_paise / 100.0, 2)
+        start_date, end_date = PERIOD_RANGES.get(p_key, ("2024-01-01", "2026-12-31"))
+
+        if confirmed_loss_inr < 100000.0:
+            severity_level = "healthy"
+            severity_label = "MONITOR"
+            severity_message = "A small difference was found, but no immediate action is needed."
+            is_action = False
+            review_status = "healthy"
+        elif confirmed_loss_inr < 300000.0:
+            severity_level = "needs_review"
+            severity_label = "ACTION NEEDED"
+            severity_message = "A meaningful amount is affected and should be reviewed."
+            is_action = True
+            review_status = "needs_review"
+        else:
+            severity_level = "action_needed"
+            severity_label = "URGENT ACTION"
+            severity_message = "A significant amount is affected and needs immediate attention."
+            is_action = True
+            review_status = "action_required"
+
+        return {
+            "key": p_key,
+            "label": PERIOD_LABELS.get(p_key, p_key),
+            "year": int(p_key[:4]),
+            "half": p_key[-2:],
+            "start": start_date,
+            "end": end_date,
+            "review_status": review_status,
+            "severity_level": severity_level,
+            "severity_label": severity_label,
+            "severity_message": severity_message,
+            "is_action_required": is_action,
+            "confirmed_finding_count": len(confirmed),
+            "confirmed_loss_inr": confirmed_loss_inr,
+        }
+
+    def _period_catalog_stub(self, p_key: str) -> Dict[str, Any]:
+        start_date, end_date = PERIOD_RANGES.get(p_key, ("2024-01-01", "2026-12-31"))
+        return {
+            "key": p_key,
+            "label": PERIOD_LABELS.get(p_key, p_key),
+            "year": int(p_key[:4]),
+            "half": p_key[-2:],
+            "start": start_date,
+            "end": end_date,
+            "review_status": "healthy",
+            "severity_level": "healthy",
+            "severity_label": "",
+            "severity_message": "",
+            "is_action_required": False,
+            "confirmed_finding_count": 0,
+            "confirmed_loss_inr": 0.0,
+        }
+
+    def get_available_periods(self, eager: bool = True) -> List[Dict[str, Any]]:
         """
-        Evaluates raw records for all 6 periods and dynamically computes their
-        health status and confirmed finding counts based on 3 severity levels.
+        Evaluates period health for the period selector.
+
+        eager=True computes findings for every period (used by /dataset/periods and tests).
+        eager=False uses already-computed findings only so the first dashboard
+        request is not blocked on the other five datasets.
         """
-        if self._periods_cache is not None:
+        if eager and self._periods_cache is not None:
             return list(self._periods_cache)
 
-        self.repo.load()
+        order = ["2026_H2", "2026_H1", "2025_H2", "2025_H1", "2024_H2", "2024_H1"]
         periods_list: List[Dict[str, Any]] = []
+        all_computed = True
 
-        for p_key in ["2026_H2", "2026_H1", "2025_H2", "2025_H1", "2024_H2", "2024_H1"]:
-            findings = self.get_findings(period=p_key)
-            confirmed = [f for f in findings if f.status == "confirmed"]
-            confirmed_loss_paise = sum(f.financial_impact_paise for f in confirmed)
-            confirmed_loss_inr = round(confirmed_loss_paise / 100.0, 2)
-            start_date, end_date = PERIOD_RANGES.get(p_key, ("2024-01-01", "2026-12-31"))
-
-            if confirmed_loss_inr < 100000.0:
-                severity_level = "healthy"
-                severity_label = "MONITOR"
-                severity_message = "A small difference was found, but no immediate action is needed."
-                is_action = False
-                review_status = "healthy"
-            elif confirmed_loss_inr < 300000.0:
-                severity_level = "needs_review"
-                severity_label = "ACTION NEEDED"
-                severity_message = "A meaningful amount is affected and should be reviewed."
-                is_action = True
-                review_status = "needs_review"
+        for p_key in order:
+            cached = self._findings_cache.get(f"{p_key}:*")
+            if cached is not None:
+                periods_list.append(self._period_summary_from_findings(p_key, cached))
+            elif eager:
+                findings = self.get_findings(period=p_key)
+                periods_list.append(self._period_summary_from_findings(p_key, findings))
             else:
-                severity_level = "action_needed"
-                severity_label = "URGENT ACTION"
-                severity_message = "A significant amount is affected and needs immediate attention."
-                is_action = True
-                review_status = "action_required"
+                all_computed = False
+                periods_list.append(self._period_catalog_stub(p_key))
 
-            periods_list.append({
-                "key": p_key,
-                "label": PERIOD_LABELS.get(p_key, p_key),
-                "year": int(p_key[:4]),
-                "half": p_key[-2:],
-                "start": start_date,
-                "end": end_date,
-                "review_status": review_status,
-                "severity_level": severity_level,
-                "severity_label": severity_label,
-                "severity_message": severity_message,
-                "is_action_required": is_action,
-                "confirmed_finding_count": len(confirmed),
-                "confirmed_loss_inr": confirmed_loss_inr,
-            })
-
-        self._periods_cache = list(periods_list)
+        if all_computed:
+            self._periods_cache = list(periods_list)
         return periods_list
+
+    def schedule_background_warm(self, current_period: str) -> None:
+        if settings.environment.lower() == "test":
+            return
+        with self._warm_lock:
+            if self._warm_started:
+                return
+            self._warm_started = True
+        thread = threading.Thread(
+            target=self._warm_remaining_periods,
+            args=(current_period,),
+            daemon=True,
+            name="reclaim-period-warm",
+        )
+        thread.start()
+
+    def _warm_remaining_periods(self, current_period: str) -> None:
+        # Let the first dashboard/anomalies/recovery burst finish before
+        # competing for CPU and the CSV load lock.
+        time.sleep(3.0)
+        logger.info("Background warming remaining period indexes after %s", current_period)
+        for p_key in ["2026_H2", "2026_H1", "2025_H2", "2025_H1", "2024_H2", "2024_H1"]:
+            if p_key == current_period:
+                continue
+            try:
+                started = time.perf_counter()
+                self.get_findings(period=p_key)
+                logger.info(
+                    "Warmed period %s in %.0f ms",
+                    p_key,
+                    (time.perf_counter() - started) * 1000,
+                )
+            except Exception:
+                logger.exception("Failed to warm period %s", p_key)
+        self._periods_cache = None
+        self.get_available_periods(eager=True)
+        logger.info("Background period warming complete")
 
     # -------------------------------------------------------------------------
     # Recovery Requests
     # -------------------------------------------------------------------------
 
     def get_recovery_requests(self, period: Optional[str] = None, status: Optional[str] = None) -> List[RecoveryRequest]:
-        self.repo.load()
         p_key = self.repo.normalize_period_key(period)
         reqs = list(self.repo.get_recovery_requests(period=p_key))
         overlay = operational_store.list_recovery_requests(settings.demo_merchant_id, p_key)
@@ -429,7 +539,6 @@ class FinancialEngine:
         page_size: int = 50,
         search: Optional[str] = None,
     ) -> Tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
-        self.repo.load()
         p_key = self.repo.normalize_period_key(period, year)
         yr_str = p_key[:4]
         half_str = p_key[-2:]
@@ -557,7 +666,6 @@ class FinancialEngine:
     # -------------------------------------------------------------------------
 
     def get_monthly_reports(self, period: Optional[str] = None, year: Optional[int] = None) -> List[Dict[str, Any]]:
-        self.repo.load()
         p_key = self.repo.normalize_period_key(period, year)
 
         payments = self.repo.get_all_payments(period=p_key, year=year)

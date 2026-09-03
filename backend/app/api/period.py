@@ -7,7 +7,6 @@ from app.services.data_repository import DEFAULT_PERIOD, PERIOD_KEYS, data_repos
 
 
 def available_period_keys() -> List[str]:
-    data_repository.load()
     keys = list(data_repository.period_keys())
     return keys or list(PERIOD_KEYS)
 
@@ -18,8 +17,8 @@ def resolve_period_key(period: Optional[str] = None, year: Optional[int] = None)
 
     Omitted period still defaults to the current demo period.
     An explicitly provided unknown period is a client error — never silent substitution.
+    Period resolution does not parse CSV files.
     """
-    data_repository.load()
     known = set(available_period_keys())
 
     if period:
