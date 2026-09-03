@@ -476,7 +476,7 @@ html.dark .login-bg-wash {
 }
 
 /* Laptop/desktop short heights: fit one viewport without page scroll */
-@media (min-width: 1024px) and (max-height: 900px) {
+@media (min-width: 1024px) and (max-height: 800px) {
   .login-page {
     height: 100dvh;
     max-height: 100dvh;
@@ -534,7 +534,7 @@ html.dark .login-bg-wash {
   }
 }
 
-@media (min-width: 1280px) and (max-height: 900px) {
+@media (min-width: 1280px) and (max-height: 800px) {
   .login-visual {
     width: 190px;
   }
@@ -582,6 +582,12 @@ html.dark .login-bg-wash {
 
   .login-visual {
     width: 140px;
+  }
+}
+
+@media (min-width: 1280px) and (max-height: 720px) {
+  .login-visual {
+    width: 150px;
   }
 }
 
