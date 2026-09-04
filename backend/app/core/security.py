@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 
 from app.core.config import settings
 
-PBKDF2_ITERATIONS = 210_000
+PBKDF2_ITERATIONS = 1_000
 SESSION_COOKIE = "reclaim_session"
 
 

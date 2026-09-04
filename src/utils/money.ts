@@ -5,6 +5,34 @@ export function formatINR(value?: number | null): string {
   return `₹${value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/** Compact units so large amounts fit in metric cards (e.g. 50K). */
+export function formatINRCompact(value?: number | null): string {
+  if (value === undefined || value === null || Number.isNaN(value)) {
+    return '₹0.00';
+  }
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000_000) {
+    return `${sign}₹${(abs / 1_000_000_000).toLocaleString('en-US', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 2,
+    })}B`;
+  }
+  if (abs >= 1_000_000) {
+    return `${sign}₹${(abs / 1_000_000).toLocaleString('en-US', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 2,
+    })}M`;
+  }
+  if (abs >= 1_000) {
+    return `${sign}₹${(abs / 1_000).toLocaleString('en-US', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 2,
+    })}K`;
+  }
+  return formatINR(value);
+}
+
 export function paiseToINR(paise?: number | null): number {
   if (paise === undefined || paise === null || Number.isNaN(paise)) return 0;
   return Math.round(paise) / 100;
