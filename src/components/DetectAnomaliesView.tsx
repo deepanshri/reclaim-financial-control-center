@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Finding, FinancialStatus, PreviousRequest } from '../types';
+import { EvidenceItem, Finding, FinancialStatus, PreviousRequest } from '../types';
 import { merchantSeverityLabel, merchantSeverityMessage, merchantSeverityBadgeClass } from '../severityPresentation';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import { formatINR, remainingRecoveryInr } from '../utils/money';
 import { createRecoveryRequest } from '../services/recoveryRequestService';
+import { getAnomalyEvidence } from '../services/anomalyService';
+import { MetricMoney } from './MetricMoney';
 
 interface DetectAnomaliesViewProps {
   anomalies: Finding[];
@@ -46,17 +48,36 @@ export const DetectAnomaliesView: React.FC<DetectAnomaliesViewProps> = ({
 }) => {
   // Track which issues have their proof expanded
   const [expandedProofIds, setExpandedProofIds] = useState<Record<string, boolean>>({});
+  const [evidenceById, setEvidenceById] = useState<Record<string, EvidenceItem[]>>({});
+  const [loadingProofIds, setLoadingProofIds] = useState<Record<string, boolean>>({});
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [mailSubject, setMailSubject] = useState('');
   const [mailBody, setMailBody] = useState('');
   const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [sendRequestError, setSendRequestError] = useState('');
 
-  const toggleProof = (id: string) => {
+  const toggleProof = (id: string, existing?: EvidenceItem[]) => {
     setExpandedProofIds((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
+    const opening = !expandedProofIds[id];
+    if (!opening || evidenceById[id]) return;
+    if (existing && existing.length > 0) {
+      setEvidenceById((prev) => ({ ...prev, [id]: existing }));
+      return;
+    }
+    setLoadingProofIds((prev) => ({ ...prev, [id]: true }));
+    getAnomalyEvidence(id, selectedPeriod)
+      .then((res) => {
+        setEvidenceById((prev) => ({ ...prev, [id]: res.evidence || [] }));
+      })
+      .catch(() => {
+        setEvidenceById((prev) => ({ ...prev, [id]: [] }));
+      })
+      .finally(() => {
+        setLoadingProofIds((prev) => ({ ...prev, [id]: false }));
+      });
   };
 
   // Helper currency formatter
@@ -280,12 +301,15 @@ Zenzo Commerce Finance`;
       {/* 2. Compact Financial Summary Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Metric 1: Money Affected */}
-        <div className="card-elevation bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6">
+        <div className="card-elevation min-w-0 bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6">
           <span className="text-[15px] font-bold text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider block">
             Money Affected
           </span>
-          <div className="text-[28px] sm:text-[30px] font-bold font-number text-[#B8522E] dark:text-[#E07A53] mt-1">
-            ₹{animatedTotalImpact.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className="mt-1">
+            <MetricMoney
+              value={animatedTotalImpact}
+              className="text-[24px] sm:text-[26px] text-[#B8522E] dark:text-[#E07A53]"
+            />
           </div>
           <span className="text-[15px] text-[#57524C] dark:text-[#A8A29E] mt-1 block">
             {isMonitor
@@ -295,12 +319,15 @@ Zenzo Commerce Finance`;
         </div>
 
         {/* Metric 2: Potential Recovery */}
-        <div className="card-elevation bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6">
+        <div className="card-elevation min-w-0 bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6">
           <span className="text-[15px] font-bold text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider block">
             Potential Recovery
           </span>
-          <div className="text-[28px] sm:text-[30px] font-bold font-number text-[#C27803] dark:text-[#E59B22] mt-1">
-            ₹{animatedPotential.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <div className="mt-1">
+            <MetricMoney
+              value={animatedPotential}
+              className="text-[24px] sm:text-[26px] text-[#C27803] dark:text-[#E59B22]"
+            />
           </div>
           <span className="text-[15px] text-[#57524C] dark:text-[#A8A29E] mt-1 block">
             {potentialRecoveryAmount > 0 ? 'Amount eligible for recovery' : 'No dispute required'}
@@ -342,7 +369,7 @@ Zenzo Commerce Finance`;
               const impact = anom.financial_impact || 0;
               const isProofOpen = !!expandedProofIds[anomId];
               const affectedCount = anom.affected_transactions || anom.affected_transaction_count || 1;
-              const evidenceItems = anom.evidence || anom.evidence_logs || [];
+              const evidenceItems = evidenceById[anomId] || anom.evidence || anom.evidence_logs || [];
               const referenceId =
                 anom.reference_id ||
                 anom.reference ||
@@ -453,7 +480,7 @@ Zenzo Commerce Finance`;
                         <button
                           type="button"
                           id={`btn-proof-${anomId}`}
-                          onClick={() => toggleProof(anomId)}
+                          onClick={() => toggleProof(anomId, anom.evidence || anom.evidence_logs)}
                           className="px-4 py-2 rounded-xl border border-[#D6D3D1] dark:border-[#2D2824] bg-[#FFFFFF] dark:bg-[#1E1B18] text-[#1C1917] dark:text-[#FAF7F2] text-[16px] font-bold flex items-center gap-2 cursor-pointer hover:bg-[#F5F5F0] dark:hover:bg-[#282420] transition-colors active:scale-95"
                         >
                           <span className="material-symbols-outlined text-[19px] transition-transform duration-200">
@@ -487,7 +514,9 @@ Zenzo Commerce Finance`;
                               </div>
 
                               {/* Evidence Statement Records Table */}
-                              {evidenceItems.length > 0 ? (
+                              {loadingProofIds[anomId] ? (
+                                <p className="py-2 text-[15px] text-[#787168] dark:text-[#A8A29E]">Loading proof…</p>
+                              ) : evidenceItems.length > 0 ? (
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-left text-[15px] border-collapse font-sans">
                                     <thead>

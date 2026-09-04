@@ -1,12 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopAppBar } from './components/TopAppBar';
 import { DetectAnomaliesView } from './components/DetectAnomaliesView';
-import { StatementView } from './components/StatementView';
-import { HistoryView } from './components/HistoryView';
-import { ReportsView } from './components/ReportsView';
-import { SettingsView } from './components/SettingsView';
-import { SupportView } from './components/SupportView';
+
+const StatementView = lazy(() =>
+  import('./components/StatementView').then((m) => ({ default: m.StatementView }))
+);
+const HistoryView = lazy(() =>
+  import('./components/HistoryView').then((m) => ({ default: m.HistoryView }))
+);
+const ReportsView = lazy(() =>
+  import('./components/ReportsView').then((m) => ({ default: m.ReportsView }))
+);
+const SettingsView = lazy(() =>
+  import('./components/SettingsView').then((m) => ({ default: m.SettingsView }))
+);
+const SupportView = lazy(() =>
+  import('./components/SupportView').then((m) => ({ default: m.SupportView }))
+);
 import { SendRequestModal } from './components/SendRequestModal';
 import { RequestDetailModal } from './components/RequestDetailModal';
 import { NewAuditModal } from './components/NewAuditModal';
@@ -14,6 +25,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { LoginView } from './components/LoginView';
 import { Toast, ToastMessage } from './components/Toast';
 import {
+  DashboardFindingSummary,
   DashboardSubTab,
   FinancialStatus,
   Finding,
@@ -35,6 +47,14 @@ import {
 import { downloadReportPdf, downloadStatementCsv } from './services/workspaceService';
 import { parseWorkspaceLocation, workspacePath } from './utils/workspaceNav';
 import { remainingRecoveryInr } from './utils/money';
+
+function ViewFallback() {
+  return (
+    <div className="p-8 lg:p-12 text-[16px] text-[#787168] dark:text-[#A8A29E]">
+      Loading workspace…
+    </div>
+  );
+}
 
 const initialRoute =
   typeof window !== 'undefined'
@@ -118,14 +138,22 @@ export function App() {
     setIsLoading(true);
     setError(null);
 
-    try {
-      const [dashData, findings, reqs, profile] = await Promise.all([
-        getDashboardData(period),
-        getAnomalies(period),
-        getRecoveryRequests(period),
-        getUserProfile(period),
-      ]);
+    const toFinding = (f: DashboardFindingSummary): Finding => ({
+      ...f,
+      id: f.finding_id,
+      anomaly_id: f.anomaly_id || f.finding_id,
+      financial_impact: f.financial_impact_inr,
+    });
 
+    const dashPromise = getDashboardData(period);
+    const restPromise = Promise.all([
+      getAnomalies(period),
+      getRecoveryRequests(period),
+      getUserProfile(period),
+    ]);
+
+    try {
+      const dashData = await dashPromise;
       if (stale()) return false;
 
       const status = dashData.financial_status;
@@ -133,15 +161,33 @@ export function App() {
         return false;
       }
 
-      setAnomalies(findings);
-      setRecoveryRequests(reqs);
-      setUserProfile(profile);
+      const previewFindings = [
+        ...(dashData.confirmed_findings || []),
+        ...(dashData.under_review_findings || []),
+      ].map(toFinding);
+      setAnomalies(previewFindings);
       setFinancialStatus({ ...status, period: status.period || period });
       if (dashData.available_periods && dashData.available_periods.length > 0) {
         setAvailablePeriods(dashData.available_periods);
       }
       setHealthScore(status.health_score);
       setTotalLostAmount(status.money_affected_inr ?? status.confirmed_loss_inr);
+      if (previewFindings.length > 0 && !selectedAnomalyId) {
+        const firstConfirmed = previewFindings.find((f) => f.status.toLowerCase() === 'confirmed');
+        setSelectedAnomalyId(
+          (firstConfirmed || previewFindings[0]).finding_id
+            || (firstConfirmed || previewFindings[0]).id
+            || ''
+        );
+      }
+      setIsLoading(false);
+
+      const [findings, reqs, profile] = await restPromise;
+      if (stale()) return false;
+
+      setAnomalies(findings);
+      setRecoveryRequests(reqs);
+      setUserProfile(profile);
 
       const confirmed = findings.filter((f) => f.status.toLowerCase() === 'confirmed');
       if (confirmed.length > 0) {
@@ -445,52 +491,64 @@ export function App() {
                   financialStatus={financialStatus}
                 />
               ) : (
-                <StatementView
-                  onSwitchToAnomalies={() => {
-                    setDashboardSubTab('detect-anomalies');
-                    syncUrl('dashboard', 'detect-anomalies', selectedPeriod);
-                  }}
-                  onExportCsv={handleExportCsv}
-                  selectedPeriod={selectedPeriod}
-                />
+                <Suspense fallback={<ViewFallback />}>
+                  <StatementView
+                    onSwitchToAnomalies={() => {
+                      setDashboardSubTab('detect-anomalies');
+                      syncUrl('dashboard', 'detect-anomalies', selectedPeriod);
+                    }}
+                    onExportCsv={handleExportCsv}
+                    selectedPeriod={selectedPeriod}
+                  />
+                </Suspense>
               )}
             </>
           )}
 
           {currentTab === 'history' && (
-            <HistoryView
-              requests={recoveryRequests}
-              onViewRequest={(req) => setSelectedRequestForDetail(req)}
-              isLoading={isLoading}
-            />
+            <Suspense fallback={<ViewFallback />}>
+              <HistoryView
+                requests={recoveryRequests}
+                onViewRequest={(req) => setSelectedRequestForDetail(req)}
+                isLoading={isLoading}
+              />
+            </Suspense>
           )}
 
           {currentTab === 'reports' && (
-            <ReportsView
-              key={selectedPeriod}
-              selectedPeriod={selectedPeriod}
-              onInvestigateAnomaly={handleInvestigateAnomaly}
-              onExportPdf={handleExportPdf}
-              financialStatus={financialStatus}
-              anomalies={anomalies}
-              feeRateLabel={
-                userProfile?.contract?.fee_rate
-                  ? `${(userProfile.contract.fee_rate * 100).toFixed(2)}% contracted MDR`
-                  : 'Contracted MDR rate'
-              }
-              settlementBank={userProfile?.settlement_bank}
-            />
+            <Suspense fallback={<ViewFallback />}>
+              <ReportsView
+                key={selectedPeriod}
+                selectedPeriod={selectedPeriod}
+                onInvestigateAnomaly={handleInvestigateAnomaly}
+                onExportPdf={handleExportPdf}
+                financialStatus={financialStatus}
+                anomalies={anomalies}
+                feeRateLabel={
+                  userProfile?.contract?.fee_rate
+                    ? `${(userProfile.contract.fee_rate * 100).toFixed(2)}% contracted MDR`
+                    : 'Contracted MDR rate'
+                }
+                settlementBank={userProfile?.settlement_bank}
+              />
+            </Suspense>
           )}
 
           {currentTab === 'settings' && (
-            <SettingsView
-              onTriggerSync={handleTriggerSync}
-              onDisconnect={handleDisconnect}
-              profile={userProfile}
-            />
+            <Suspense fallback={<ViewFallback />}>
+              <SettingsView
+                onTriggerSync={handleTriggerSync}
+                onDisconnect={handleDisconnect}
+                profile={userProfile}
+              />
+            </Suspense>
           )}
 
-          {currentTab === 'support' && <SupportView />}
+          {currentTab === 'support' && (
+            <Suspense fallback={<ViewFallback />}>
+              <SupportView />
+            </Suspense>
+          )}
         </main>
       </div>
 

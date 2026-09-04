@@ -27,8 +27,17 @@ def _map_evidence(ev_list) -> List[EvidenceItemSchema]:
     ]
 
 
-def _map_finding(f) -> FindingSchema:
-    ev_schemas = _map_evidence(f.evidence)
+# The list response is a summary. Detail routes still return every record id.
+LIST_SOURCE_ID_CAP = 25
+
+
+def _map_finding(f, include_evidence: bool = True) -> FindingSchema:
+    ev_schemas = _map_evidence(f.evidence) if include_evidence else []
+    source_ids = (
+        f.source_record_ids
+        if include_evidence
+        else f.source_record_ids[:LIST_SOURCE_ID_CAP]
+    )
     return FindingSchema(
         finding_id=f.finding_id,
         anomaly_id=f.finding_id,
@@ -50,10 +59,10 @@ def _map_finding(f) -> FindingSchema:
         end_date=f.end_date,
         confidence=f.confidence,
         root_cause_reference=f.root_cause_reference,
-        source_record_ids=f.source_record_ids,
+        source_record_ids=source_ids,
         evidence_count=len(f.evidence),
-        evidence=ev_schemas,
-        evidence_logs=ev_schemas,
+        evidence=ev_schemas if include_evidence else None,
+        evidence_logs=ev_schemas if include_evidence else None,
         verification_method_a=f.verification_method_a,
         verification_method_b=f.verification_method_b,
         is_verified=f.is_verified,
@@ -67,7 +76,7 @@ def get_anomalies(
     status: Optional[str] = Query(None, description="Filter status (e.g. confirmed, under_review)"),
 ) -> List[FindingSchema]:
     findings = financial_engine.get_findings(period=period_or_400(period, year), status=status)
-    return [_map_finding(f) for f in findings]
+    return [_map_finding(f, include_evidence=False) for f in findings]
 
 
 @router.get("/{finding_id}", response_model=FindingSchema, summary="Get Finding Details by ID")

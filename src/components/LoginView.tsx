@@ -1,10 +1,10 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useTheme } from '../context/ThemeContext';
 import { overlayTransition, stageSpring } from '../motion/presets';
 import { LoginFinanceVisuals } from './LoginFinanceVisuals';
 import { login } from '../services/authService';
-import { ApiError } from '../services/api';
+import { ApiError, fetchApi } from '../services/api';
 
 interface LoginViewProps {
   onLoginSuccess: (merchantId?: string, merchantName?: string) => void;
@@ -29,7 +29,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [errors, setErrors] = useState<FieldErrors>({ merchantId: '', password: '' });
   const [formError, setFormError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [connectingSlowly, setConnectingSlowly] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    // Silently pre-warm the backend (especially Render cold starts) as soon as login mounts
+    fetchApi('/api/health').catch(() => {});
+  }, []);
+
+  const handleFillDemo = () => {
+    setMerchantId('mid_demo_ZC771042');
+    setPassword('ReclaimDemo!2026');
+    setErrors({ merchantId: '', password: '' });
+    setFormError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,15 +63,23 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     setErrors({ merchantId: '', password: '' });
     setFormError('');
     setIsLoading(true);
+    setConnectingSlowly(false);
+
+    const slowTimer = window.setTimeout(() => {
+      setConnectingSlowly(true);
+    }, 1200);
 
     try {
       const session = await login(nextId, nextPassword);
+      window.clearTimeout(slowTimer);
       setIsExiting(true);
       window.setTimeout(() => {
         onLoginSuccess(session.merchant_id, session.merchant_name);
-      }, 320);
+      }, 100);
     } catch (err: unknown) {
+      window.clearTimeout(slowTimer);
       setIsLoading(false);
+      setConnectingSlowly(false);
       if (err instanceof ApiError && err.status === 401) {
         setFormError('Those credentials were not accepted. Check the merchant ID and password.');
         return;
@@ -206,17 +227,34 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             <button
               type="submit"
               disabled={isLoading || isExiting}
-              className="login-enter-btn w-full cursor-pointer rounded-xl bg-[#1E4A73] px-6 font-ui text-[18px] font-semibold tracking-normal text-white disabled:cursor-not-allowed disabled:opacity-70 dark:bg-[#2A5F8F]"
+              className="login-enter-btn w-full cursor-pointer rounded-xl bg-[#1E4A73] px-6 font-ui text-[18px] font-semibold tracking-normal text-white disabled:cursor-not-allowed disabled:opacity-70 dark:bg-[#2A5F8F] flex items-center justify-center gap-2.5 transition-all"
             >
-              {isLoading ? 'Signing in…' : 'ENTER RECLAIM'}
+              {isLoading ? (
+                <>
+                  <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span>{connectingSlowly ? 'Connecting to secure engine…' : 'Signing in…'}</span>
+                </>
+              ) : (
+                'ENTER RECLAIM'
+              )}
             </button>
           </form>
 
-          <p className="login-demo leading-relaxed text-[#6B655E] dark:text-[#A8A29E]">
-            Demo workspace with a synthetic dataset. Sign in with merchant ID{' '}
-            <span className="font-mono">mid_demo_ZC771042</span> and password{' '}
-            <span className="font-mono">ReclaimDemo!2026</span>.
-          </p>
+          <div className="login-demo leading-relaxed text-[#6B655E] dark:text-[#A8A29E] space-y-2">
+            <p>
+              Demo workspace with a synthetic dataset. Sign in with merchant ID{' '}
+              <span className="font-mono font-semibold">mid_demo_ZC771042</span> and password{' '}
+              <span className="font-mono font-semibold">ReclaimDemo!2026</span>.
+            </p>
+            <button
+              type="button"
+              onClick={handleFillDemo}
+              className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-[#1E4A73] dark:text-[#8BA4C2] hover:underline cursor-pointer bg-white dark:bg-[#1C1917] px-3.5 py-1.5 rounded-lg border border-[#E2E2DC] dark:border-[#2D2824] shadow-xs hover:border-[#1E4A73] transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">key</span>
+              <span>1-Click Autofill Demo Credentials</span>
+            </button>
+          </div>
         </motion.div>
       </main>
     </motion.div>

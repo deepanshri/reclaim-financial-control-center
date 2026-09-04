@@ -6,6 +6,7 @@ import {
   Finding,
 } from '../types';
 import { getReportsData } from '../services/reportService';
+import { MetricMoney } from './MetricMoney';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
 import {
   merchantSeverityLabel,
@@ -457,11 +458,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <span className="text-[14px] font-bold text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider block">
               Total Confirmed Impact
             </span>
-            <span
-              className={`text-[26px] sm:text-[30px] font-bold font-number leading-tight ${merchantSeverityAmountClass(severityLevel)}`}
-            >
-              ₹{confirmedLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+            <MetricMoney
+              value={confirmedLoss}
+              className={`text-[22px] sm:text-[26px] ${merchantSeverityAmountClass(severityLevel)}`}
+            />
           </div>
         )}
       </div>
@@ -484,9 +484,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <span className="material-symbols-outlined text-[20px]">trending_down</span>
               </span>
             </div>
-            <div className="text-[30px] sm:text-[34px] font-bold font-number text-[#B8522E] dark:text-[#E07A53] leading-none">
-              ₹{animLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <MetricMoney
+              value={animLoss}
+              className="text-[26px] sm:text-[30px] text-[#B8522E] dark:text-[#E07A53]"
+            />
             <p className="text-[15px] text-[#57524C] dark:text-[#A8A29E] mt-3 leading-relaxed">
               {confirmedLoss < 100000
                 ? 'Minor settlement rounding adjustments within normal tolerance.'
@@ -504,9 +505,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <span className="material-symbols-outlined text-[20px]">price_check</span>
               </span>
             </div>
-            <div className="text-[30px] sm:text-[34px] font-bold font-number text-[#C27803] dark:text-[#E59B22] leading-none">
-              ₹{animPotential.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <MetricMoney
+              value={animPotential}
+              className="text-[26px] sm:text-[30px] text-[#C27803] dark:text-[#E59B22]"
+            />
             <p className="text-[15px] text-[#57524C] dark:text-[#A8A29E] mt-3 leading-relaxed">
               Total amount eligible to be recovered via gateway merchant dispute tickets.
             </p>
@@ -522,9 +524,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <span className="material-symbols-outlined text-[20px]">account_balance</span>
               </span>
             </div>
-            <div className="text-[30px] sm:text-[34px] font-bold font-number text-[#2D5A43] dark:text-[#4E9A70] leading-none">
-              ₹{animRecovered.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <MetricMoney
+              value={animRecovered}
+              className="text-[26px] sm:text-[30px] text-[#2D5A43] dark:text-[#4E9A70]"
+            />
             <p className="text-[15px] text-[#57524C] dark:text-[#A8A29E] mt-3 leading-relaxed">
               Direct bank credits received and confirmed for resolved dispute claims.
             </p>
@@ -533,47 +536,51 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
         {/* Secondary Supporting Metrics Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-[#FAF9F5] dark:bg-[#1E1B18] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-5">
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             <span className="text-[14px] font-bold text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider block">
               Customer Payments
             </span>
-            <div className="text-[20px] sm:text-[22px] font-bold font-number text-[#1C1917] dark:text-[#FAF7F2]">
-              ₹{animVolume.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <MetricMoney
+              value={animVolume}
+              className="text-[18px] sm:text-[20px] text-[#1C1917] dark:text-[#FAF7F2]"
+            />
             <span className="text-[15px] text-[#57524C] dark:text-[#A8A29E]">
               {totalTransactionCount.toLocaleString('en-IN')} transactions
             </span>
           </div>
 
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             <span className="text-[14px] font-bold text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider block">
               Payment Fees (MDR + GST)
             </span>
-            <div className="text-[20px] sm:text-[22px] font-bold font-number text-[#1C1917] dark:text-[#FAF7F2]">
-              ₹{animFees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <MetricMoney
+              value={animFees}
+              className="text-[18px] sm:text-[20px] text-[#1C1917] dark:text-[#FAF7F2]"
+            />
             <span className="text-[15px] text-[#57524C] dark:text-[#A8A29E]">{feeRateLabel}</span>
           </div>
 
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             <span className="text-[14px] font-bold text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider block">
               Customer Refunds
             </span>
-            <div className="text-[20px] sm:text-[22px] font-bold font-number text-[#1C1917] dark:text-[#FAF7F2]">
-              ₹{animRefunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <MetricMoney
+              value={animRefunds}
+              className="text-[18px] sm:text-[20px] text-[#1C1917] dark:text-[#FAF7F2]"
+            />
             <span className="text-[15px] text-[#57524C] dark:text-[#A8A29E]">
               {monthlyList.reduce((acc, m) => acc + (m.refunds_inr > 0 ? 1 : 0), 0) > 0 ? 'Normal customer returns' : '0 refunds'}
             </span>
           </div>
 
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             <span className="text-[14px] font-bold text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider block">
               Net Bank Settlements
             </span>
-            <div className="text-[20px] sm:text-[22px] font-bold font-number text-[#1C1917] dark:text-[#FAF7F2]">
-              ₹{animSettlements.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <MetricMoney
+              value={animSettlements}
+              className="text-[18px] sm:text-[20px] text-[#1C1917] dark:text-[#FAF7F2]"
+            />
             <span className="text-[15px] text-[#57524C] dark:text-[#A8A29E]">{settlementBank}</span>
           </div>
         </div>

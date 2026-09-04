@@ -4,17 +4,22 @@ import { useState, useEffect, useRef } from 'react';
  * Motion designer-grade smooth number animator.
  * Uses easeOutExpo: fast initial climb with long, silky deceleration to rest.
  */
+function shouldSkipAnimation(): boolean {
+  if (typeof window === 'undefined') return true;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+  // requestAnimationFrame is paused in background tabs, which would otherwise
+  // leave the counter stuck at its starting value.
+  return typeof document !== 'undefined' && document.hidden;
+}
+
 export function useAnimatedNumber(
   targetValue: number,
   durationMs: number = 900,
   startImmediately: boolean = true
 ): number {
-  const [currentValue, setCurrentValue] = useState<number>(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return targetValue;
-    }
-    return 0;
-  });
+  const [currentValue, setCurrentValue] = useState<number>(() =>
+    shouldSkipAnimation() ? targetValue : 0
+  );
 
   const currentValRef = useRef(currentValue);
   currentValRef.current = currentValue;
@@ -22,7 +27,7 @@ export function useAnimatedNumber(
   useEffect(() => {
     if (!startImmediately) return;
 
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (shouldSkipAnimation()) {
       setCurrentValue(targetValue);
       return;
     }
@@ -33,6 +38,21 @@ export function useAnimatedNumber(
     const startVal = currentValRef.current;
     const diff = targetValue - startVal;
     if (diff === 0) return;
+
+    // If the tab is hidden mid-animation, jump straight to the final value.
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationFrameId);
+        setCurrentValue(targetValue);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // Safety net: never leave a stale intermediate value on screen.
+    const failsafe = window.setTimeout(() => {
+      cancelAnimationFrame(animationFrameId);
+      setCurrentValue(targetValue);
+    }, durationMs + 400);
 
     // easeOutExpo for fluid decelerating counter
     const easeOutExpo = (x: number): number => {
@@ -61,6 +81,8 @@ export function useAnimatedNumber(
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      window.clearTimeout(failsafe);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [targetValue, durationMs, startImmediately]);
 

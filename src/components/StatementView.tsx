@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StatementActivityItem, StatementSummary } from '../types';
 import { getStatementData } from '../services/statementService';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
+import { MetricMoney } from './MetricMoney';
 
 interface StatementViewProps {
   selectedPeriod?: string;
@@ -44,6 +45,7 @@ export const StatementView: React.FC<StatementViewProps> = ({
           page: currentPage,
           pageSize: PAGE_SIZE,
           q: searchTerm.trim() || undefined,
+          type: typeFilter,
         });
         if (!isCancelled) {
           setItems(response.items);
@@ -65,22 +67,16 @@ export const StatementView: React.FC<StatementViewProps> = ({
       isCancelled = true;
       window.clearTimeout(handle);
     };
-  }, [selectedPeriod, currentPage, searchTerm, retryTick]);
+  }, [selectedPeriod, currentPage, searchTerm, typeFilter, retryTick]);
 
   // Animated metric counters
   const animatedPayments = useAnimatedNumber(summary.total_payments_inr, 850);
   const animatedFees = useAnimatedNumber(summary.fees_deducted_inr, 850);
   const animatedSettlements = useAnimatedNumber(summary.bank_deposits_inr, 850);
 
-  const filteredData = items.filter((item) => {
-    const txId = item.transaction_id || item.id || '';
-    const matchesSearch =
-      txId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.date.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'All' || item.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
+  // The server already applies the period, search and type filters, so `items` is
+  // the page to render. Re-filtering here would drop rows the pagination counter
+  // still counts.
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE) || 1;
 
   return (
@@ -109,53 +105,56 @@ export const StatementView: React.FC<StatementViewProps> = ({
       </div>
 
       {/* 4 Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-entrance stagger-2">
-        <div className="card-elevation bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6 lg:p-7 space-y-2.5 overflow-hidden">
-          <span className="text-[15px] lg:text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 animate-entrance stagger-2">
+        <div className="card-elevation min-w-0 bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-5 lg:p-6 space-y-2.5 overflow-hidden">
+          <span className="text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block truncate">
             Customer Payments
           </span>
-          <div className="text-[21px] lg:text-[23px] xl:text-[28px] font-sans font-bold text-[#1C1917] dark:text-[#FAF7F2] font-number leading-tight tracking-normal">
-            ₹{animatedPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <span className="text-[15px] lg:text-[15px] text-[#2D5A43] dark:text-[#4E9A70] font-sans font-medium flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">check_circle</span>
-            Total payments received
+          <MetricMoney
+            value={animatedPayments}
+            className="text-[22px] sm:text-[24px] text-[#1C1917] dark:text-[#FAF7F2]"
+          />
+          <span className="text-[14px] lg:text-[15px] text-[#2D5A43] dark:text-[#4E9A70] font-sans font-medium flex items-center gap-1.5 truncate">
+            <span className="material-symbols-outlined text-[18px] shrink-0">check_circle</span>
+            <span className="truncate">Total payments received</span>
           </span>
         </div>
 
-        <div className="card-elevation bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6 lg:p-7 space-y-2.5 overflow-hidden">
-          <span className="text-[15px] lg:text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block">
+        <div className="card-elevation min-w-0 bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-5 lg:p-6 space-y-2.5 overflow-hidden">
+          <span className="text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block truncate">
             Gateway Fees
           </span>
-          <div className="text-[21px] lg:text-[23px] xl:text-[28px] font-sans font-bold text-[#B8522E] dark:text-[#E07A53] font-number leading-tight tracking-normal">
-            ₹{animatedFees.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <span className="text-[15px] lg:text-[15px] text-[#57524C] dark:text-[#A8A29E] font-sans font-medium">
+          <MetricMoney
+            value={animatedFees}
+            className="text-[22px] sm:text-[24px] text-[#B8522E] dark:text-[#E07A53]"
+          />
+          <span className="text-[14px] lg:text-[15px] text-[#57524C] dark:text-[#A8A29E] font-sans font-medium truncate block">
             Fees and GST paid
           </span>
         </div>
 
-        <div className="card-elevation bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6 lg:p-7 space-y-2.5 overflow-hidden">
-          <span className="text-[15px] lg:text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block">
+        <div className="card-elevation min-w-0 bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-5 lg:p-6 space-y-2.5 overflow-hidden">
+          <span className="text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block truncate">
             Bank Deposits
           </span>
-          <div className="text-[21px] lg:text-[23px] xl:text-[28px] font-sans font-bold text-[#2D5A43] dark:text-[#4E9A70] font-number leading-tight tracking-normal">
-            ₹{animatedSettlements.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <span className="text-[15px] lg:text-[15px] text-[#2D5A43] dark:text-[#4E9A70] font-sans font-medium flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[18px]">account_balance</span>
-            Money sent to your bank
+          <MetricMoney
+            value={animatedSettlements}
+            className="text-[22px] sm:text-[24px] text-[#2D5A43] dark:text-[#4E9A70]"
+          />
+          <span className="text-[14px] lg:text-[15px] text-[#2D5A43] dark:text-[#4E9A70] font-sans font-medium flex items-center gap-1.5 truncate">
+            <span className="material-symbols-outlined text-[18px] shrink-0">account_balance</span>
+            <span className="truncate">Money sent to your bank</span>
           </span>
         </div>
 
-        <div className="card-elevation bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-6 lg:p-7 space-y-2.5 overflow-hidden">
-          <span className="text-[15px] lg:text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block">
+        <div className="card-elevation min-w-0 bg-[#FFFFFF] dark:bg-[#1A1815] border border-[#E2E2DC] dark:border-[#2D2824] rounded-3xl p-5 lg:p-6 space-y-2.5 overflow-hidden">
+          <span className="text-[15px] font-sans text-[#787168] dark:text-[#A8A29E] uppercase tracking-wider font-bold block truncate">
             Verification Rate
           </span>
-          <div className="text-[21px] lg:text-[23px] xl:text-[28px] font-sans font-bold text-[#1C1917] dark:text-[#FAF7F2] font-number leading-tight tracking-normal">
+          <div className="text-[22px] sm:text-[24px] font-sans font-bold text-[#1C1917] dark:text-[#FAF7F2] tabular-nums leading-tight truncate">
             {summary.matching_rate_percent.toFixed(1)}%
           </div>
-          <span className="text-[15px] lg:text-[15px] text-[#57524C] dark:text-[#A8A29E] font-sans font-medium">
+          <span className="text-[14px] lg:text-[15px] text-[#57524C] dark:text-[#A8A29E] font-sans font-medium truncate block">
             Checked automatically
           </span>
         </div>
@@ -185,7 +184,10 @@ export const StatementView: React.FC<StatementViewProps> = ({
           {['All', 'Payment', 'Fee', 'Bank Deposit', 'Refund'].map((t) => (
             <button
               key={t}
-              onClick={() => setTypeFilter(t)}
+              onClick={() => {
+                setTypeFilter(t);
+                setCurrentPage(1);
+              }}
               className={`filter-chip px-4 py-2.5 rounded-2xl text-[16px] font-semibold cursor-pointer ${
                 typeFilter === t ? 'is-active' : ''
               }`}
@@ -211,7 +213,7 @@ export const StatementView: React.FC<StatementViewProps> = ({
               Retry
             </button>
           </div>
-        ) : filteredData.length === 0 ? (
+        ) : items.length === 0 ? (
           <div className="p-16 text-center text-[#787168] font-sans text-[18px]">
             {searchTerm.trim()
               ? 'No transactions found matching your search.'
@@ -231,7 +233,7 @@ export const StatementView: React.FC<StatementViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E2DC] dark:divide-[#2D2824]">
-                {filteredData.map((item) => (
+                {items.map((item) => (
                   <tr key={item.id} className="hover:bg-[#FAF9F5] dark:hover:bg-[#1C1917] transition-colors">
                     <td className="py-4 px-6 font-sans text-[16px] text-[#44403C] dark:text-[#D6D3D1]">
                       {item.date}

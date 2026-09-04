@@ -8,6 +8,7 @@ export interface StatementParams {
   page?: number;
   pageSize?: number;
   q?: string;
+  type?: string;
 }
 
 export async function getStatementData(params?: StatementParams): Promise<StatementResponse> {
@@ -18,6 +19,7 @@ export async function getStatementData(params?: StatementParams): Promise<Statem
   if (params?.page) queryParts.push(`page=${params.page}`);
   if (params?.pageSize) queryParts.push(`page_size=${params.pageSize}`);
   if (params?.q) queryParts.push(`q=${encodeURIComponent(params.q)}`);
+  if (params?.type && params.type !== 'All') queryParts.push(`type=${encodeURIComponent(params.type)}`);
 
   const queryString = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
   return fetchApi<StatementResponse>(`/api/statement${queryString}`);

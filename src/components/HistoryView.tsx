@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RecoveryRequest } from '../types';
 import { useAnimatedNumber } from '../hooks/useAnimatedNumber';
+import { MetricMoney } from './MetricMoney';
 
 interface HistoryViewProps {
   requests: RecoveryRequest[];
@@ -104,9 +105,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <div className="text-[38px] font-sans font-bold text-[#1C1917] dark:text-[#FAF7F2] leading-none font-number">
             {animatedTotal}
           </div>
-          <span className="text-[16px] text-[#57524C] dark:text-[#A8A29E] block font-sans pt-1 font-number">
-            ₹{totalRequested.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} requested
-          </span>
+          <div className="pt-1 text-[#57524C] dark:text-[#A8A29E]">
+            <MetricMoney
+              value={totalRequested}
+              className="text-[16px] text-[#57524C] dark:text-[#A8A29E]"
+              exactClassName="mt-0.5 text-[12px] font-medium tabular-nums text-current/60 break-all"
+            />
+            <span className="text-[13px] text-[#787168] dark:text-[#A8A29E]">requested</span>
+          </div>
         </div>
 
         <div className="sm:px-8 space-y-2">
@@ -116,9 +122,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <div className="text-[38px] font-sans font-bold text-[#2D5A43] dark:text-[#4E9A70] leading-none font-number">
             {animatedResolved}
           </div>
-          <span className="text-[16px] text-[#2D5A43] dark:text-[#4E9A70] font-bold block font-sans pt-1 font-number">
-            ₹{totalRecovered.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recovered
-          </span>
+          <div className="pt-1 text-[#2D5A43] dark:text-[#4E9A70]">
+            <MetricMoney
+              value={totalRecovered}
+              className="text-[16px] text-[#2D5A43] dark:text-[#4E9A70]"
+              exactClassName="mt-0.5 text-[12px] font-medium tabular-nums text-current/60 break-all"
+            />
+            <span className="text-[13px] text-[#2D5A43] dark:text-[#4E9A70]">recovered</span>
+          </div>
         </div>
 
         <div className="sm:px-8 last:pr-0 space-y-2">
@@ -128,9 +139,14 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           <div className="text-[38px] font-sans font-bold text-[#B8731E] dark:text-[#E5A33C] leading-none font-number">
             {animatedPending}
           </div>
-          <span className="text-[16px] text-[#57524C] dark:text-[#A8A29E] block font-sans pt-1 font-number">
-            ₹{totalUnderReview.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pending review
-          </span>
+          <div className="pt-1 text-[#57524C] dark:text-[#A8A29E]">
+            <MetricMoney
+              value={totalUnderReview}
+              className="text-[16px] text-[#57524C] dark:text-[#A8A29E]"
+              exactClassName="mt-0.5 text-[12px] font-medium tabular-nums text-current/60 break-all"
+            />
+            <span className="text-[13px] text-[#787168] dark:text-[#A8A29E]">pending review</span>
+          </div>
         </div>
       </div>
 

@@ -49,3 +49,44 @@ def test_statement_activity_ledger():
     assert len(items) == 20
     assert summary["total_payments_inr"] > 0
     assert summary["matching_rate_percent"] > 90
+
+
+def test_statement_first_page_is_not_only_refunds():
+    """The T+1 refund tail must not sort ahead of the period's own activity."""
+    items, _, _ = financial_engine.get_statement_ledger(period="2026_H2", page=1, page_size=25)
+    types = {item["type"] for item in items}
+    assert types != {"Refund"}
+    assert "Payment" in types
+
+
+def test_statement_is_chronological_and_keeps_every_source_type():
+    items, total, _ = financial_engine.get_statement_ledger(
+        period="2026_H2", page=1, page_size=100_000
+    )
+    assert len(items) == total
+
+    timestamps = [item["timestamp"] for item in items]
+    assert timestamps == sorted(timestamps)
+
+    # Every ledger row is unique and every type present in the dataset survives.
+    assert len({item["id"] for item in items}) == len(items)
+    assert {item["type"] for item in items} == {"Payment", "Fee", "Bank Deposit", "Refund"}
+
+    # Rows dated past the six calendar months are the genuine T+1 tail and stay labelled.
+    spillover = [item for item in items if not item["date"].startswith("2026-")]
+    assert spillover, "2026_H2 carries a T+1 settlement/refund tail"
+    assert all("T+1" in item["status"] for item in spillover)
+    assert items[-1] in spillover
+
+
+def test_statement_type_filter_applies_to_the_whole_period():
+    _, all_total, _ = financial_engine.get_statement_ledger(period="2026_H2", page=1, page_size=1)
+    seen = 0
+    for ledger_type in ["Payment", "Fee", "Bank Deposit", "Refund"]:
+        items, total, _ = financial_engine.get_statement_ledger(
+            period="2026_H2", page=1, page_size=10, txn_type=ledger_type
+        )
+        assert total > 0
+        assert all(item["type"] == ledger_type for item in items)
+        seen += total
+    assert seen == all_total

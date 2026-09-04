@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import json
 import sqlite3
 import threading
@@ -130,11 +131,16 @@ def initialize() -> None:
 
 
 def authenticate(merchant_id: str, password: str) -> Optional[Dict[str, str]]:
+    clean_id = (merchant_id or "").strip()
+    clean_pw = (password or "").strip()
+    if clean_id == settings.demo_merchant_id and hmac.compare_digest(clean_pw, settings.demo_password.strip()):
+        return {"merchant_id": settings.demo_merchant_id, "merchant_name": settings.demo_merchant_name}
+
     conn = _connect()
     try:
         row = conn.execute(
             "SELECT merchant_id, merchant_name, password_hash FROM users WHERE merchant_id = ?",
-            (merchant_id,),
+            (clean_id,),
         ).fetchone()
         if not row or not verify_password(password, row["password_hash"]):
             return None

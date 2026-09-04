@@ -65,6 +65,8 @@ class FinancialEngine:
         self.uncredited_refund_detector = UncreditedRefundDetector(self.repo)
         self.reference_auditor = ReferenceAnomalyAuditor(self.repo)
         self._findings_cache: Dict[str, List[Finding]] = {}
+        self._status_cache: Dict[str, Dict[str, Any]] = {}
+        self._ledger_cache: Dict[str, Tuple[List[Dict[str, Any]], Dict[str, Any]]] = {}
         self._periods_cache: Optional[List[Dict[str, Any]]] = None
         self._findings_lock = threading.Lock()
         self._period_findings_locks: Dict[str, threading.Lock] = {}
@@ -84,6 +86,8 @@ class FinancialEngine:
         prefix = f"{period}:"
         with self._findings_lock:
             self._findings_cache = {k: v for k, v in self._findings_cache.items() if not k.startswith(prefix)}
+            self._status_cache.pop(period, None)
+            self._ledger_cache.pop(period, None)
         self._periods_cache = None
 
     # -------------------------------------------------------------------------
@@ -207,6 +211,11 @@ class FinancialEngine:
         """
         started = time.perf_counter()
         p_key = self.repo.normalize_period_key(period, year)
+
+        with self._findings_lock:
+            cached_status = self._status_cache.get(p_key)
+        if cached_status is not None:
+            return dict(cached_status)
 
         payments = self.repo.get_all_payments(period=p_key, year=year)
         refunds = self.repo.get_all_refunds(period=p_key, year=year)
@@ -337,12 +346,14 @@ class FinancialEngine:
             "is_action_required": is_action,
             "review_status": review_status,
         }
+        with self._findings_lock:
+            self._status_cache[p_key] = result
         logger.info(
             "financial engine status period=%s elapsed=%.0fms",
             p_key,
             (time.perf_counter() - started) * 1000,
         )
-        return result
+        return dict(result)
 
     def calculate_health_score(
         self,
@@ -538,8 +549,47 @@ class FinancialEngine:
         page: int = 1,
         page_size: int = 50,
         search: Optional[str] = None,
+        txn_type: Optional[str] = None,
     ) -> Tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
         p_key = self.repo.normalize_period_key(period, year)
+        activity, summary = self._period_ledger(p_key, year)
+
+        if month:
+            activity = [
+                item
+                for item in activity
+                if str(item.get("date", "")).startswith(month)
+            ]
+        if txn_type and txn_type.lower() != "all":
+            wanted = txn_type.strip().lower()
+            activity = [
+                item for item in activity if str(item.get("type", "")).lower() == wanted
+            ]
+        if search:
+            needle = search.strip().lower()
+            activity = [
+                item
+                for item in activity
+                if needle in str(item.get("transaction_id", "")).lower()
+                or needle in str(item.get("date", "")).lower()
+                or needle in str(item.get("type", "")).lower()
+            ]
+
+        total_count = len(activity)
+        start_idx = max(0, (page - 1) * page_size)
+        end_idx = start_idx + page_size
+        return activity[start_idx:end_idx], total_count, dict(summary)
+
+    def _period_ledger(
+        self,
+        p_key: str,
+        year: Optional[int] = None,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        with self._findings_lock:
+            cached = self._ledger_cache.get(p_key)
+        if cached is not None:
+            return cached[0], cached[1]
+
         yr_str = p_key[:4]
         half_str = p_key[-2:]
         if half_str == "H1":
@@ -548,7 +598,6 @@ class FinancialEngine:
             calendar_months = {f"{yr_str}-{m:02d}" for m in range(7, 13)}
 
         def ledger_status(date_str: str, base: str) -> str:
-            # Keep the actual T+1/T+2 date. Reports stay on six calendar months.
             if date_str[:7] not in calendar_months:
                 return f"{base} · T+1"
             return base
@@ -560,8 +609,6 @@ class FinancialEngine:
         activity: List[Dict[str, Any]] = []
 
         for p in payments:
-            if month and not p.created_date.startswith(month):
-                continue
             activity.append({
                 "id": f"act_pay_{p.id}",
                 "date": p.created_date,
@@ -588,8 +635,6 @@ class FinancialEngine:
                 })
 
         for r in refunds:
-            if month and not r.created_date.startswith(month):
-                continue
             activity.append({
                 "id": f"act_ref_{r.id}",
                 "date": r.created_date,
@@ -606,8 +651,6 @@ class FinancialEngine:
             })
 
         for s in settlements:
-            if month and not s.settlement_date.startswith(month):
-                continue
             activity.append({
                 "id": f"act_setl_{s.id}",
                 "date": s.settlement_date,
@@ -623,21 +666,17 @@ class FinancialEngine:
                 "method": "NEFT/RTGS",
             })
 
-        activity.sort(key=lambda x: x["timestamp"], reverse=True)
-        if search:
-            needle = search.strip().lower()
-            activity = [
-                item
-                for item in activity
-                if needle in str(item.get("transaction_id", "")).lower()
-                or needle in str(item.get("date", "")).lower()
-                or needle in str(item.get("type", "")).lower()
-            ]
-
-        total_count = len(activity)
-        start_idx = max(0, (page - 1) * page_size)
-        end_idx = start_idx + page_size
-        paginated_items = activity[start_idx:end_idx]
+        # Read the period as a statement: oldest entry first, so the ledger opens on
+        # the period start and the T+1 settlement/refund tail that legitimately spills
+        # past the sixth calendar month stays at the end where it belongs. Sorting
+        # newest-first put that small tail (dated into the following January) ahead of
+        # every in-period payment, so the first page was almost entirely refunds.
+        # Within one timestamp a payment is listed before the fee charged on it, and
+        # the id tiebreaker keeps pagination stable across requests.
+        type_rank = {"Payment": 0, "Fee": 1, "Refund": 2, "Bank Deposit": 3}
+        activity.sort(
+            key=lambda x: (x["timestamp"], type_rank.get(x["type"], 9), x["id"])
+        )
 
         kpi_volume_paise = sum(p.amount_paise for p in payments)
         kpi_fees_paise = sum(p.fee_paise for p in payments)
@@ -658,8 +697,9 @@ class FinancialEngine:
             "bank_deposits_inr": paise_to_inr(kpi_settlements_paise),
             "matching_rate_percent": kpi_matching_rate,
         }
-
-        return paginated_items, total_count, summary
+        with self._findings_lock:
+            self._ledger_cache[p_key] = (activity, summary)
+        return activity, summary
 
     # -------------------------------------------------------------------------
     # Reporting & Monthly Breakdown
