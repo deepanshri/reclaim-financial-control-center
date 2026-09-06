@@ -31,6 +31,10 @@ def _trim_and_check(bucket: Deque[float], now: float, limit: int) -> None:
 
 
 async def enforce_rate_limit(request: Request) -> None:
+    if request.method == "OPTIONS":
+        # CORS preflights are browser-generated and paired with the real request.
+        # Counting them halved the effective login budget and produced 429s on retry.
+        return
     path = request.url.path
     if path == "/" or any(path.startswith(prefix) for prefix in _PUBLIC_PREFIXES if prefix != "/"):
         if path in ("/", "/api/health") or path.startswith("/docs") or path.startswith("/redoc") or path.startswith("/openapi"):

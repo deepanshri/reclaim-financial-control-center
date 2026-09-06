@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { overlayTransition, stageSpring } from '../motion/presets';
 import { LoginFinanceVisuals } from './LoginFinanceVisuals';
 import { login } from '../services/authService';
-import { ApiError, fetchApi } from '../services/api';
+import { ApiError, prewarmApi } from '../services/api';
 
 interface LoginViewProps {
   onLoginSuccess: (merchantId?: string, merchantName?: string) => void;
@@ -33,8 +33,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    // Silently pre-warm the backend (especially Render cold starts) as soon as login mounts
-    fetchApi('/api/health').catch(() => {});
+    // Joins the ping already started in index.html; never issues a duplicate.
+    prewarmApi();
   }, []);
 
   const handleFillDemo = () => {

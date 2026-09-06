@@ -12,6 +12,31 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Wake the API before the font stylesheets and the app bundle are fetched.
+      // The module script below cannot run until the stylesheets above resolve, so
+      // starting the ping here saves that time on the first sign-in of a session.
+      (function () {
+        var base = '%VITE_API_BASE_URL%';
+        if (base.charAt(0) === '%') base = '';
+        base = base.trim().replace(/\/$/, '');
+        var isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(location.hostname);
+        if (!base && !isLocal) base = 'https://reclaim-financial-control-center.onrender.com';
+        window.__reclaimApiBase = base;
+        try {
+          window.__reclaimPrewarm = fetch(base + '/api/health', {
+            method: 'GET',
+            credentials: 'omit',
+            cache: 'no-store',
+          }).then(
+            function () {},
+            function () {}
+          );
+        } catch (e) {
+          /* prewarm is best effort */
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

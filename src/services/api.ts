@@ -20,6 +20,32 @@ const API_BASE = resolveApiBase();
 const TOKEN_KEY = 'reclaim_session_token';
 const UNAUTHORIZED_EVENT = 'reclaim:unauthorized';
 
+declare global {
+  interface Window {
+    __reclaimPrewarm?: Promise<void>;
+    __reclaimApiBase?: string;
+  }
+}
+
+/**
+ * Reuses the health ping started inline in index.html. Returns the same promise
+ * for every caller so a re-mounted login view never opens a second connection.
+ */
+export function prewarmApi(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (!window.__reclaimPrewarm) {
+    window.__reclaimPrewarm = fetch(`${API_BASE}/api/health`, {
+      method: 'GET',
+      credentials: 'omit',
+      cache: 'no-store',
+    }).then(
+      () => undefined,
+      () => undefined
+    );
+  }
+  return window.__reclaimPrewarm;
+}
+
 export class ApiError extends Error {
   public status: number;
   public details?: unknown;

@@ -18,10 +18,21 @@ const SettingsView = lazy(() =>
 const SupportView = lazy(() =>
   import('./components/SupportView').then((m) => ({ default: m.SupportView }))
 );
-import { SendRequestModal } from './components/SendRequestModal';
-import { RequestDetailModal } from './components/RequestDetailModal';
-import { NewAuditModal } from './components/NewAuditModal';
-import { ProfileModal } from './components/ProfileModal';
+// Modals only exist behind the sign-in wall, so they stay out of the login bundle.
+// They render nothing while closed, and their chunks are fetched as soon as the
+// workspace mounts — long before a user can open one.
+const SendRequestModal = lazy(() =>
+  import('./components/SendRequestModal').then((m) => ({ default: m.SendRequestModal }))
+);
+const RequestDetailModal = lazy(() =>
+  import('./components/RequestDetailModal').then((m) => ({ default: m.RequestDetailModal }))
+);
+const NewAuditModal = lazy(() =>
+  import('./components/NewAuditModal').then((m) => ({ default: m.NewAuditModal }))
+);
+const ProfileModal = lazy(() =>
+  import('./components/ProfileModal').then((m) => ({ default: m.ProfileModal }))
+);
 import { LoginView } from './components/LoginView';
 import { Toast, ToastMessage } from './components/Toast';
 import {
@@ -552,46 +563,54 @@ export function App() {
         </main>
       </div>
 
-      <SendRequestModal
-        isOpen={isSendRequestModalOpen}
-        onClose={() => setIsSendRequestModalOpen(false)}
-        onSendSuccess={handleSendSuccess}
-        initialAnomaly={selectedAnomalyForRequest}
-        defaultClaimAmount={remainingRecoveryInr(
-          financialStatus?.potential_recovery_inr ?? financialStatus?.potential_loss_inr,
-          financialStatus?.recovery_requested_inr
-        )}
-        selectedPeriod={selectedPeriod}
-        claimScope={claimScope}
-      />
+      <Suspense fallback={null}>
+        <SendRequestModal
+          isOpen={isSendRequestModalOpen}
+          onClose={() => setIsSendRequestModalOpen(false)}
+          onSendSuccess={handleSendSuccess}
+          initialAnomaly={selectedAnomalyForRequest}
+          defaultClaimAmount={remainingRecoveryInr(
+            financialStatus?.potential_recovery_inr ?? financialStatus?.potential_loss_inr,
+            financialStatus?.recovery_requested_inr
+          )}
+          selectedPeriod={selectedPeriod}
+          claimScope={claimScope}
+        />
+      </Suspense>
 
-      <NewAuditModal
-        isOpen={isNewAuditModalOpen}
-        onClose={() => setIsNewAuditModalOpen(false)}
-        onAuditComplete={handleAuditComplete}
-        selectedPeriod={selectedPeriod}
-      />
+      <Suspense fallback={null}>
+        <NewAuditModal
+          isOpen={isNewAuditModalOpen}
+          onClose={() => setIsNewAuditModalOpen(false)}
+          onAuditComplete={handleAuditComplete}
+          selectedPeriod={selectedPeriod}
+        />
+      </Suspense>
 
-      <RequestDetailModal
-        isOpen={selectedRequestForDetail !== null}
-        onClose={() => setSelectedRequestForDetail(null)}
-        request={selectedRequestForDetail}
-      />
+      <Suspense fallback={null}>
+        <RequestDetailModal
+          isOpen={selectedRequestForDetail !== null}
+          onClose={() => setSelectedRequestForDetail(null)}
+          request={selectedRequestForDetail}
+        />
+      </Suspense>
 
-      <ProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        profile={userProfile}
-        onSignOut={async () => {
-          try {
-            await logoutSession();
-          } catch {
-            // session is cleared locally regardless
-          }
-          setIsProfileModalOpen(false);
-          setIsAuthenticated(false);
-        }}
-      />
+      <Suspense fallback={null}>
+        <ProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          profile={userProfile}
+          onSignOut={async () => {
+            try {
+              await logoutSession();
+            } catch {
+              // session is cleared locally regardless
+            }
+            setIsProfileModalOpen(false);
+            setIsAuthenticated(false);
+          }}
+        />
+      </Suspense>
 
       <Toast toasts={toasts} onDismiss={handleDismissToast} />
     </div>

@@ -1,0 +1,31 @@
+name: Keep backend warm
+
+# The Render free tier suspends the web service after ~15 minutes of inactivity,
+# and the next request pays a full container + interpreter cold start (~23s
+# measured). Pinging the public health endpoint keeps the instance resident so
+# real sign-ins hit a running process.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: keep-backend-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /api/health
+        env:
+          API_ORIGIN: https://reclaim-financial-control-center.onrender.com
+        run: |
+          code=$(curl --silent --show-error --location \
+            --max-time 120 --retry 2 --retry-delay 15 \
+            --output /dev/null --write-out '%{http_code}' \
+            "$API_ORIGIN/api/health")
+          echo "health responded with HTTP $code"
+          test "$code" = "200"

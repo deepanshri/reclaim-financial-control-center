@@ -77,6 +77,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "Accept"],
+    # The JSON login body forces a preflight. Caching it for a day keeps the
+    # extra cross-origin round trip off the sign-in path after the first call.
+    max_age=86400,
 )
 
 
